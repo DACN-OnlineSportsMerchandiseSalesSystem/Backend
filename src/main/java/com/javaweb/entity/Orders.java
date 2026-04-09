@@ -52,6 +52,10 @@ public class Orders {
     @JoinColumn(name = "billing_address_id", referencedColumnName = "id")
     private Address billingAddress;
     
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
+    
     public void add(OrderItems item) {
 
         if (item != null) {

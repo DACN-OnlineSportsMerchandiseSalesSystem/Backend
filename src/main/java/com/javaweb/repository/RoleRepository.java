@@ -7,8 +7,8 @@ import java.util.Optional;
 
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Integer> {
-    
+
     // Hàm này cực kỳ quan trọng để check quyền khi User đăng nhập
-    // Ví dụ: findByName("ADMIN") hoặc findByName("USER")
+    // Ví dụ: findByName([admin, IT admin, user])
     Optional<Role> findByName(String name);
 }

@@ -18,7 +18,7 @@ public class NewAPI {
 		return temp;
 	}
 	
-	@GetMapping(value = "/api/users")
+	@GetMapping(value = "/api/test-users")
 	public Object getUser2(@RequestBody UserDTO User) {	
 		UserDTO temp = new UserDTO();
 		return temp;

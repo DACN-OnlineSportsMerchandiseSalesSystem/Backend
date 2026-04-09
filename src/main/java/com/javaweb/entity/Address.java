@@ -33,5 +33,9 @@ public class Address {
     
     @Column(name = "phone")
     private String phone;
+    
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 
 }

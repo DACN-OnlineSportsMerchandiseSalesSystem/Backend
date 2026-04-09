@@ -7,6 +7,8 @@ import com.javaweb.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.javaweb.exception.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import com.javaweb.repository.RoleRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,9 +18,10 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    
     // Inject thêm RoleRepository để gán Quyền lúc tạo User
-    private final com.javaweb.repository.RoleRepository roleRepository;
+    private final RoleRepository roleRepository;
+    // Inject cỗ máy băm mật khẩu
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<UserDTO> getAllUsers() {
@@ -87,7 +90,9 @@ public class UserServiceImpl implements UserService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
-        user.setPassword(request.getPassword());
+        
+        // Cực kì quan trọng: Băm mật khẩu ra thành chuỗi mã hóa trước khi cho vào DB
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setStatus("ACTIVE");
         
         if (request.getRoleName() != null) {
@@ -119,7 +124,9 @@ public class UserServiceImpl implements UserService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
-        user.setPassword(request.getPassword());
+        if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
         user.setStatus(request.getStatus());
         if (request.getRoleName() != null) {
             com.javaweb.entity.Role role = roleRepository.findByName(request.getRoleName()).orElse(null);

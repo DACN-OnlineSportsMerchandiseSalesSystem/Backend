@@ -27,7 +27,7 @@ public class Cart {
 	
 	@ManyToOne
 	@JoinColumn(name = "user_id")
-	private User users;
+	private User user;
 	
 	@OneToMany(cascade = CascadeType.ALL, mappedBy = "cart")
     private Set<CartItem> cartItems = new HashSet<>();
