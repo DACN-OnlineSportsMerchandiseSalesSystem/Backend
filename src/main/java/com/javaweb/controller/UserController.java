@@ -12,9 +12,12 @@ import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 @RestController
 @RequestMapping("/api/users") // Cổng API cho Frontend gọi
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('ADMIN')") // Tất cả API trong kho này đều yêu cầu quyền ADMIN
 public class UserController {
 
     private final UserService userService;

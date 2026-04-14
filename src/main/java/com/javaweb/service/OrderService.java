@@ -8,7 +8,7 @@ public interface OrderService {
 
 	OrderDTO getOrderById(Long id);
 
-	OrderDTO createOrder(com.javaweb.dto.OrderRequestDTO request);
+	OrderDTO createOrder(com.javaweb.dto.OrderRequestDTO request, String userEmail);
 
 	OrderDTO updateOrderStatus(Long id, String status);
 

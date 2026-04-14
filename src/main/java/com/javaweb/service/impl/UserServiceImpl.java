@@ -96,7 +96,11 @@ public class UserServiceImpl implements UserService {
         user.setStatus("ACTIVE");
         
         if (request.getRoleName() != null) {
-            com.javaweb.entity.Role role = roleRepository.findByName(request.getRoleName()).orElse(null);
+            com.javaweb.entity.Role role = roleRepository.findByName(request.getRoleName()).orElseGet(() -> {
+                com.javaweb.entity.Role newRole = new com.javaweb.entity.Role();
+                newRole.setName(request.getRoleName());
+                return roleRepository.save(newRole);
+            });
             user.setRole(role);
         }
 
@@ -129,7 +133,11 @@ public class UserServiceImpl implements UserService {
         }
         user.setStatus(request.getStatus());
         if (request.getRoleName() != null) {
-            com.javaweb.entity.Role role = roleRepository.findByName(request.getRoleName()).orElse(null);
+            com.javaweb.entity.Role role = roleRepository.findByName(request.getRoleName()).orElseGet(() -> {
+                com.javaweb.entity.Role newRole = new com.javaweb.entity.Role();
+                newRole.setName(request.getRoleName());
+                return roleRepository.save(newRole);
+            });
             user.setRole(role);
         }
         user = userRepository.save(user);

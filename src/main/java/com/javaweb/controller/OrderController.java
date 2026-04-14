@@ -8,8 +8,9 @@ import com.javaweb.dto.OrderRequestDTO;
 //library
 import java.util.List;
 //springframework
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @RestController
 @RequestMapping("/api/orders") // Cổng API cho Frontend gọi
@@ -22,6 +23,14 @@ public class OrderController {
     @GetMapping
     public ResponseEntity<List<OrderDTO>> getAll() {
         return ResponseEntity.ok(orderService.getAllOrder());
+    }
+
+    // HTTP POST: localhost:8080/api/orders
+    @PostMapping
+    public ResponseEntity<OrderDTO> createOrder(@RequestBody OrderRequestDTO request) {
+        String userEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        OrderDTO createdOrder = orderService.createOrder(request, userEmail);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
     }
 
     @GetMapping("/{id}")

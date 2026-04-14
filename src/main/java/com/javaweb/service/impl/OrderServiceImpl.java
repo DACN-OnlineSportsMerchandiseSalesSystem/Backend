@@ -11,6 +11,8 @@ import com.javaweb.entity.ProductVariant;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.OrderRepository;
 import com.javaweb.repository.ProductVariantRepository;
+import com.javaweb.repository.UserRepository;
+import com.javaweb.entity.User;
 import com.javaweb.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class OrderServiceImpl implements OrderService {
 
 	private final OrderRepository orderRepository;
 	private final ProductVariantRepository productVariantRepository;
+	private final UserRepository userRepository;
 
 	@Override
 	public List<OrderDTO> getAllOrder() {
@@ -87,8 +90,12 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
-	public OrderDTO createOrder(OrderRequestDTO request) {
+	public OrderDTO createOrder(OrderRequestDTO request, String userEmail) {
+		User user = userRepository.findByEmail(userEmail)
+				.orElseThrow(() -> new ResouceNotFoundException("User not found with email: " + userEmail));
+
 		Orders order = new Orders();
+		order.setUser(user);
 		order.setNote(request.getNote());
 		order.setShippingFee(request.getShippingFee());
 		order.setReceiverName(request.getReceiverName());

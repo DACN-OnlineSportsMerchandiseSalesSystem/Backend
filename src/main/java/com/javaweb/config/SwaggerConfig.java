@@ -1,13 +1,17 @@
 package com.javaweb.config;
 
+import java.util.List;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 public class SwaggerConfig {
@@ -20,17 +24,17 @@ public class SwaggerConfig {
     }
 
     @Bean
-    public OpenAPI openAPI() {
+    public OpenAPI openAPI(@Value("${open.api.title}") String title,
+            @Value("${open.api.description}") String description,
+            @Value("${open.api.version}") String version,
+            @Value("${open.api.server.url}") String serverUrl,
+            @Value("${open.api.server.description}") String serverDescription) {
         return new OpenAPI().addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new Components().addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()))
                 .info(new Info()
-                        .title("Hệ Thống API E-commerce Thể Thao")
-                        .description("Tài liệu hướng dẫn sử dụng API Backend đồ án Hệ Thống Thương Mại Điện Tử. Tác giả: Tiến Anh.")
-                        .version("1.0.0")
-                        .contact(new Contact()
-                                .name("Tiến Anh")
-                                .email("admin@tienanh.com")
-                                .url("https://github.com/DACN-OnlineSportsMerchandiseSalesSystem/Backend"))
-                );
+                        .title(title)
+                        .description(description)
+                        .version(version))
+                .servers(List.of(new Server().url(serverUrl).description(serverDescription)));
     }
 }

@@ -37,6 +37,8 @@ src/
 - **Payment.java**: Thông tin thanh toán
 - **Review.java**: Đánh giá sản phẩm
 - **Image.java**: Hình ảnh sản phẩm
+- **Cart.java**: Giỏ hàng
+- **CartItem.java**: Sản phẩm trong giỏ hàng
 
 ### 2.2. DTOs (src/main/java/com/javaweb/dto)
 
@@ -45,6 +47,8 @@ src/
 - **ProductDTO.java**: Trả về thông tin product
 - **ProductRequestDTO.java**: Nhận request tạo/update product
 - **AuthResponseDTO.java**: Trả về JWT token
+- **CartDTO.java**: Trả về thông tin giỏ hàng
+- **AddCartRequestDTO.java**: Nhận request thêm vào giỏ hàng
 
 ### 2.3. Controllers (src/main/java/com/javaweb/controller)
 
@@ -57,6 +61,7 @@ src/
 - **PaymentController.java**: Quản lý payment
 - **ReviewController.java**: Quản lý review
 - **ImageController.java**: Quản lý image
+- **CartController.java**: Quản lý giỏ hàng
 
 ### 2.4. Services (src/main/java/com/javaweb/service)
 
@@ -68,6 +73,7 @@ src/
 - **PaymentService.java**: Logic nghiệp vụ payment
 - **ReviewService.java**: Logic nghiệp vụ review
 - **ImageService.java**: Logic nghiệp vụ image
+- **CartService.java**: Logic nghiệp vụ giỏ hàng
 
 ### 2.5. Security (src/main/java/com/javaweb/security)
 
@@ -171,6 +177,13 @@ jwt.expiration=86400000
 - `PUT /api/images/{id}`: Cập nhật image
 - `DELETE /api/images/{id}`: Xóa image
 
+### 4.10. Carts
+
+- `GET /api/carts`: Lấy thông tin giỏ hàng của user
+- `POST /api/carts/items`: Thêm sản phẩm vào giỏ hàng
+- `DELETE /api/carts/items/{itemId}`: Xóa sản phẩm khỏi giỏ hàng
+- `DELETE /api/carts`: Xóa toàn bộ sản phẩm trong giỏ hàng
+
 ## 5. Cách chạy
 
 1. **Cài đặt Java 17+**
@@ -185,7 +198,6 @@ CREATE DATABASE online_sports_store;
 5. **Chạy ứng dụng**
 
 ```bash
-cd backend-dacn
 mvn spring-boot:run
 ```
 
@@ -228,6 +240,8 @@ Cấu trúc chuẩn của dự án được chia làm các tầng rõ rệt giú
    - Xây dựng sơ đồ phân cấp Danh mục, Hãng và Biến thể Sản phẩm.
 3. **Bảo mật và Phân Quyền (JWT Authentication)**
    - Hệ thống khóa chặn vạn năng dựa trên Token. (Hạn sử dụng: 7 ngày).
+4. **Giỏ hàng (Cart)**
+   - Quản lý giỏ hàng của người dùng, hỗ trợ thêm/xóa/xem sản phẩm trong giỏ hàng.
 
 ## 🛠️ Hướng dẫn cài đặt (Getting Started)
 1. Hãy tìm mở file `src/main/resources/application.properties`.

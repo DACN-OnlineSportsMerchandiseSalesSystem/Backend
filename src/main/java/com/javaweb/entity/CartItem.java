@@ -31,4 +31,9 @@ public class CartItem {
 	@JoinColumn(name = "cart_id")
 	private Cart cart;
 	
+	// Liên kết đến biến thể sản phẩm (Màu sắc/Kích cỡ cụ thể)
+	@ManyToOne
+	@JoinColumn(name = "product_variant_id")
+	private ProductVariant productVariant;
+	
 }
