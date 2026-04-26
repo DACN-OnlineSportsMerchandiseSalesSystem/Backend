@@ -33,7 +33,7 @@ public class UserController {
     public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
         UserDTO userDTO = userService.getUserById(id);
         if (userDTO == null) {
-            return ResponseEntity.notFound().build(); // Trả về lỗi 404 Not Found nếu không có
+            return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(userDTO);
     }
@@ -58,6 +58,6 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         userService.deleteUser(id);
-        return ResponseEntity.noContent().build(); // Trả về mã 204 No Content báo hiệu xóa (hoặc ẩn) thành công
+        return ResponseEntity.noContent().build();
     }
 }

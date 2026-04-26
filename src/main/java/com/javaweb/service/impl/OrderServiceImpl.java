@@ -90,6 +90,35 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	public List<OrderDTO> getMyOrders(String userEmail) {
+		User user = userRepository.findByEmail(userEmail)
+				.orElseThrow(() -> new ResouceNotFoundException("User not found: " + userEmail));
+
+		List<Orders> orders = orderRepository.findByUserId(user.getId());
+		return orders.stream()
+				.map(this::mapToDTO)
+				.collect(Collectors.toList());
+	}
+
+	@Override
+	public OrderDTO getOrderByIdForUser(Long id, String userEmail) {
+		Orders order = orderRepository.findById(id)
+				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
+
+		User user = userRepository.findByEmail(userEmail)
+				.orElseThrow(() -> new ResouceNotFoundException("User not found"));
+
+		boolean isAdmin = user.getRole() != null && user.getRole().getName().equalsIgnoreCase("ADMIN");
+		boolean isOwner = order.getUser() != null && order.getUser().getId().equals(user.getId());
+
+		if (!isAdmin && !isOwner) {
+			throw new RuntimeException("Xin lỗi, bạn không có quyền lấy hóa đơn của người khác!");
+		}
+
+		return mapToDTO(order);
+	}
+
+	@Override
 	public OrderDTO createOrder(OrderRequestDTO request, String userEmail) {
 		User user = userRepository.findByEmail(userEmail)
 				.orElseThrow(() -> new ResouceNotFoundException("User not found with email: " + userEmail));

@@ -19,28 +19,31 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
-    
+
     @Column(name = "phone")
     private String phone; // Đã sửa thành String để không mất số 0
-    
+
     @Column(name = "email")
     private String email;
-    
+
     @Column(name = "status")
     private String status; // Đã sửa thành String (ACTIVE, BANNED, LOCKED)
-    
-    @Column(name = "full_name")
-    private String fullName;
-    
+
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
     @Column(name = "password")
     private String password;
-    
+
     @Column(name = "is_super_admin") // Đã xóa dấu chấm phẩy ;
     private Boolean isSuperAdmin;
-    
+
     @Column(name = "level")
     private String level; // Nên dùng String (vd: Quản lý, Nhân viên)
-    
+
     @Column(name = "last_login")
     @UpdateTimestamp
     private Date lastLogin;

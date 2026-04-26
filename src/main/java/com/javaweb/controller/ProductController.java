@@ -17,7 +17,19 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<ProductDTO>> getAll() {
+    public ResponseEntity<List<ProductDTO>> getAll(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long brandId) {
+        
+        if (categoryId != null && brandId == null) {
+            return ResponseEntity.ok(productService.getProductsByCategory(categoryId));
+        }
+        if (brandId != null && categoryId == null) {
+            return ResponseEntity.ok(productService.getProductsByBrand(brandId));
+        }
+        if (brandId != null && categoryId != null) {
+            return ResponseEntity.ok(productService.getProductsByCategoryAndBrand(categoryId, brandId));
+        }
         return ResponseEntity.ok(productService.getAllProducts());
     }
 

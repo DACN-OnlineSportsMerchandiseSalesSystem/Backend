@@ -46,7 +46,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<UserDTO> register(@RequestBody UserRequestDTO requestDto) {
         // Đảm bảo khách hàng tự đăng ký luôn mặc định là "USER"
-        requestDto.setRoleName("USER");
+        requestDto.setRoleName("CUSTOMER");
         UserDTO newUser = userService.createUser(requestDto);
         return new ResponseEntity<>(newUser, HttpStatus.CREATED);
     }

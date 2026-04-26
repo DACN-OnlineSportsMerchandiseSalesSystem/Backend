@@ -22,7 +22,7 @@ public class Role {
     private String name;
 
     // 1 Quyền (Role) được cấp cho rất nhiều Người dùng (Users)
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "role") // Đã đổi thành "role"
-    private Set<User> users = new HashSet<>(); // Đã thêm "s"
+    @OneToMany(mappedBy = "role") 
+    private Set<User> users = new HashSet<>(); 
 	
 }

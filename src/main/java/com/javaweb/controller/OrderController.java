@@ -19,9 +19,16 @@ import org.springframework.security.core.context.SecurityContextHolder;
 public class OrderController {
     private final OrderService orderService;
 
-    // HTTP GET: localhost:8080/api/orders
+    // HTTP GET: localhost:8080/api/orders (Chỉ lấy danh sách hóa đơn của tôi)
     @GetMapping
-    public ResponseEntity<List<OrderDTO>> getAll() {
+    public ResponseEntity<List<OrderDTO>> getMyOrders() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(orderService.getMyOrders(email));
+    }
+
+    // HTTP GET: Tuyến đường Dành riêng cho ADMIN để xem toàn bộ Đơn hàng trên hệ thống
+    @GetMapping("/all")
+    public ResponseEntity<List<OrderDTO>> getAllOrdersForAdmin() {
         return ResponseEntity.ok(orderService.getAllOrder());
     }
 
@@ -35,8 +42,8 @@ public class OrderController {
 
     @GetMapping("/{id}")
     public ResponseEntity<OrderDTO> getById(@PathVariable Long id) {
-        // Dùng Exception toàn cục, không cần check null nữa
-        OrderDTO orderDTO = orderService.getOrderById(id);
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        OrderDTO orderDTO = orderService.getOrderByIdForUser(id, email);
         return ResponseEntity.ok(orderDTO);
     }
 

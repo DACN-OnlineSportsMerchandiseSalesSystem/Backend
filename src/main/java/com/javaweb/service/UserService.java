@@ -9,7 +9,7 @@ public interface UserService {
 
     UserDTO getUserById(Long id);
 
-    UserDTO createUser(com.javaweb.dto.UserRequestDTO request);
+    UserDTO createUser(UserRequestDTO request);
 
     UserDTO updateUser(Long id, UserRequestDTO request);
 

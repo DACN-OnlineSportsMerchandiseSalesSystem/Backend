@@ -26,7 +26,34 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDTO> getAllProducts() {
-        return productRepository.findAll().stream().map(this::mapToDTO).collect(Collectors.toList());
+        return productRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductDTO> getProductsByCategory(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductDTO> getProductsByBrand(Long brandId) {
+        return productRepository.findByBrandId(brandId)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductDTO> getProductsByCategoryAndBrand(Long categoryId, Long brandId) {
+        return productRepository.findByCategoryIdAndBrandId(categoryId, brandId)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -53,7 +80,7 @@ public class ProductServiceImpl implements ProductService {
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResouceNotFoundException("Product not found with id: " + id));
-        product.setStatus("INACTIVE"); 
+        product.setStatus("INACTIVE");
         productRepository.save(product);
     }
 
@@ -64,16 +91,18 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(request.getDescription());
         product.setSlug(request.getSlug());
         product.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE"); // Mặc định là ACTIVE
-        
+
         if (request.getCategoryId() != null) {
             Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResouceNotFoundException("Category not found with id: " + request.getCategoryId()));
+                    .orElseThrow(() -> new ResouceNotFoundException(
+                            "Category not found with id: " + request.getCategoryId()));
             product.setCategory(category);
         }
-        
+
         if (request.getBrandId() != null) {
             Brand brand = brandRepository.findById(request.getBrandId())
-                    .orElseThrow(() -> new ResouceNotFoundException("Brand not found with id: " + request.getBrandId()));
+                    .orElseThrow(
+                            () -> new ResouceNotFoundException("Brand not found with id: " + request.getBrandId()));
             product.setBrand(brand);
         }
         return product;
@@ -88,7 +117,7 @@ public class ProductServiceImpl implements ProductService {
         dto.setDescription(product.getDescription());
         dto.setSlug(product.getSlug());
         dto.setStatus(product.getStatus());
-        
+
         if (product.getCategory() != null) {
             dto.setCategoryName(product.getCategory().getName());
         }
@@ -97,7 +126,5 @@ public class ProductServiceImpl implements ProductService {
         }
         return dto;
     }
-
-
 
 }
