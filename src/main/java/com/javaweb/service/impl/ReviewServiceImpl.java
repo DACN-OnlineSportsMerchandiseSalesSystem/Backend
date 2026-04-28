@@ -35,8 +35,10 @@ public class ReviewServiceImpl implements ReviewService {
         Review review = new Review();
         review.setUser(user);
         review.setProducts(product);
-        review.setContent(request.getContent());
+        review.setTitle(request.getTitle());
+        review.setComment(request.getComment());
         review.setRating(request.getRating() != null ? request.getRating() : 5);
+        review.setCreatedAt(new java.util.Date());
 
         return mapToDTO(reviewRepository.save(review));
     }
@@ -67,11 +69,26 @@ public class ReviewServiceImpl implements ReviewService {
         reviewRepository.delete(review);
     }
 
+    @Override
+    public ReviewDTO replyToReview(Long reviewId, String adminReply) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResouceNotFoundException("Review not found with id: " + reviewId));
+        
+        review.setAdminReply(adminReply);
+        review.setRepliedAt(new java.util.Date());
+        
+        return mapToDTO(reviewRepository.save(review));
+    }
+
     private ReviewDTO mapToDTO(Review review) {
         ReviewDTO dto = new ReviewDTO();
         dto.setId(review.getId());
-        dto.setContent(review.getContent());
+        dto.setTitle(review.getTitle());
+        dto.setComment(review.getComment());
         dto.setRating(review.getRating());
+        dto.setCreatedAt(review.getCreatedAt());
+        dto.setAdminReply(review.getAdminReply());
+        dto.setRepliedAt(review.getRepliedAt());
 
         if (review.getUser() != null) {
             dto.setUserName(review.getUser().getLastName() + " " + review.getUser().getFirstName());

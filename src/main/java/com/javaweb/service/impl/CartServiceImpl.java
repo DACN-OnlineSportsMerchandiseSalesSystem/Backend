@@ -49,7 +49,7 @@ public class CartServiceImpl implements CartService {
 
         if (existingItem.isPresent()) {
             CartItem item = existingItem.get();
-            item.setQuantity(item.getQuantity().add(request.getQuantity()));
+            item.setQuantity(item.getQuantity() + request.getQuantity());
             cartItemRepository.save(item);
         } else {
             CartItem newItem = new CartItem();
@@ -116,7 +116,7 @@ public class CartServiceImpl implements CartService {
                     itemDTO.setImageUrl("https://placehold.co/150"); // Mock Image URL
                     
                     if (item.getProductVariant().getPrice() != null && item.getQuantity() != null) {
-                        BigDecimal itemTotal = item.getProductVariant().getPrice().multiply(item.getQuantity());
+                        BigDecimal itemTotal = item.getProductVariant().getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
                         total = total.add(itemTotal);
                     }
                 }

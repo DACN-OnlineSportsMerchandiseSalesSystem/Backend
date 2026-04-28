@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 import java.util.Date;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -25,7 +24,7 @@ public class CartItem {
 	private Date createdAt;
 	
 	@Column(name = "quantity")
-	private BigDecimal quantity;
+	private Integer quantity;
 	
 	@ManyToOne
 	@JoinColumn(name = "cart_id")

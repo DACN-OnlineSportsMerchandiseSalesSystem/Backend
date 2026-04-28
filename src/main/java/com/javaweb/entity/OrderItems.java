@@ -17,17 +17,16 @@ public class OrderItems {
     @Column(name="id")
     private Long id;
 
-    @Column(name="image_url")
-    private String imageUrl;
+    @Column(name="price_at_purchase")
+    private BigDecimal priceAtPurchase;
 
-    @Column(name="unit_price")
-    private BigDecimal unitPrice;
+    @Column(name="discount_amount")
+    private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @Column(name="quantity")
     private int quantity;
 
-    @Column(name="product_id")
-    private Long productId;
+
 
     @ManyToOne
     @JoinColumn(name = "order_id")

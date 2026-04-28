@@ -13,6 +13,12 @@ public interface UserService {
 
     UserDTO updateUser(Long id, UserRequestDTO request);
 
+    UserDTO getMyProfile(String email);
+
+    UserDTO updateMyProfile(String email, UserRequestDTO request);
+
+    void changePassword(String email, com.javaweb.dto.ChangePasswordRequestDTO request);
+
     void deleteUser(Long id);
 
     boolean existsByEmail(String email);

@@ -6,7 +6,6 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 //import org.hibernate.annotations.UpdateTimestamp;
 
-
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashSet;
@@ -18,8 +17,8 @@ import java.util.Set;
 @Setter
 
 public class Orders {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 
@@ -28,7 +27,7 @@ public class Orders {
     private Date createAt;
 
     @Column(name = "note")
-    private String note; 	
+    private String note;
 
     @Column(name = "total_price")
     private BigDecimal totalPrice;
@@ -38,24 +37,33 @@ public class Orders {
 
     @Column(name = "receiver_name")
     private String receiverName;
-    
+
     @Column(name = "phone")
     private String phone;
-    
+
     @Column(name = "status")
     private String status;
-    
+
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "orders")
     private Set<OrderItems> orderItems = new HashSet<>();
-    
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "billing_address_id", referencedColumnName = "id")
-    private Address billingAddress;
-    
+
+    @Column(name = "billing_street")
+    private String billingStreet;
+
+    @Column(name = "billing_city")
+    private String billingCity;
+
+    @Column(name = "billing_ward")
+    private String billingState;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;
-    
+
+    @ManyToOne
+    @JoinColumn(name = "voucher_id")
+    private Voucher voucher;
+
     public void add(OrderItems item) {
 
         if (item != null) {

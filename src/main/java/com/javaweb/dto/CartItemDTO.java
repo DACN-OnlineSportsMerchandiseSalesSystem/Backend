@@ -13,5 +13,5 @@ public class CartItemDTO {
     // Dữ liệu rút gọn từ ProductVariant để hiện thị giao diện
     private String imageUrl;
     private BigDecimal unitPrice;
-    private BigDecimal quantity;
+    private Integer quantity;
 }

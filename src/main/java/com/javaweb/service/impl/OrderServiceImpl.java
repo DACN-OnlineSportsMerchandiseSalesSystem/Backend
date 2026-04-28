@@ -1,9 +1,6 @@
 package com.javaweb.service.impl;
 
-import com.javaweb.dto.AddressDTO;
-import com.javaweb.dto.OrderDTO;
-import com.javaweb.dto.OrderItemDTO;
-import com.javaweb.dto.OrderRequestDTO;
+import com.javaweb.dto.*;
 import com.javaweb.entity.Address;
 import com.javaweb.entity.OrderItems;
 import com.javaweb.entity.Orders;
@@ -31,36 +28,14 @@ public class OrderServiceImpl implements OrderService {
 	private final OrderRepository orderRepository;
 	private final ProductVariantRepository productVariantRepository;
 	private final UserRepository userRepository;
+	private final com.javaweb.repository.VoucherRepository voucherRepository;
 
 	@Override
 	public List<OrderDTO> getAllOrder() {
 		List<Orders> orders = orderRepository.findAll();
-		List<OrderDTO> orderDTOs = new ArrayList<>();
-		for (Orders order : orders) {
-			OrderDTO orderDTO = new OrderDTO();
-			orderDTO.setId(order.getId());
-			orderDTO.setNote(order.getNote());
-			orderDTO.setCreateAt(order.getCreateAt());
-			orderDTO.setTotalPrice(order.getTotalPrice());
-			orderDTO.setShippingFee(order.getShippingFee());
-			orderDTO.setReceiverName(order.getReceiverName());
-			orderDTO.setPhone(order.getPhone());
-			orderDTO.setStatus(order.getStatus());
-
-			Set<OrderItemDTO> itemDTOs = order.getOrderItems().stream()
-					.map(this::mapItemToDTO)
-					.collect(Collectors.toSet());
-			orderDTO.setOrderItems(itemDTOs);
-			/*
-			 * for (OrderItems item : order.getOrderItems()) {
-			 * OrderItemDTO dto = this.mapItemToDTO(item);
-			 * itemDTOs.add(dto);
-			 * }
-			 */
-			orderDTO.setBillingAddress(mapAddressToDTO(order.getBillingAddress()));
-			orderDTOs.add(orderDTO);
-		}
-		return orderDTOs;
+		return orders.stream()
+				.map(this::mapToDTO)
+				.collect(Collectors.toList());
 	}
 
 	
@@ -133,16 +108,17 @@ public class OrderServiceImpl implements OrderService {
 
 		BigDecimal total = BigDecimal.ZERO;
 
-		// 1. Chuyển DTO thành Entity Address
+		// 1. Trích xuất thông tin giao hàng đắp thẳng vào Đơn Hàng (Snapshot)
 		if (request.getBillingAddress() != null) {
-			Address address = new Address();
-			address.setStreet(request.getBillingAddress().getStreet());
-			address.setCity(request.getBillingAddress().getCity());
-			address.setState(request.getBillingAddress().getState());
-			address.setIsDefault(request.getBillingAddress().getIsDefault());
-			address.setReceiverName(request.getBillingAddress().getReceiverName());
-			address.setPhone(request.getBillingAddress().getPhone());
-			order.setBillingAddress(address);
+			order.setBillingStreet(request.getBillingAddress().getStreet());
+			order.setBillingCity(request.getBillingAddress().getCity());
+			order.setBillingState(request.getBillingAddress().getState());
+			if (request.getBillingAddress().getReceiverName() != null) {
+				order.setReceiverName(request.getBillingAddress().getReceiverName());
+			}
+			if (request.getBillingAddress().getPhone() != null) {
+				order.setPhone(request.getBillingAddress().getPhone());
+			}
 		}
 
 		// 2. Map từng món hàng (OrderItemDTO -> OrderItems)
@@ -150,23 +126,65 @@ public class OrderServiceImpl implements OrderService {
 			for (OrderItemDTO itemDto : request.getItems()) {
 				OrderItems item = new OrderItems();
 				item.setQuantity(itemDto.getQuantity());
-				item.setUnitPrice(itemDto.getUnitPrice());
-				item.setImageUrl(itemDto.getImageUrl());
 
-				// Trích xuất ProductVariant gốc từ CSDL dựa theo Variant ID
 				if (itemDto.getProductVariantId() != null) {
 					ProductVariant variant = productVariantRepository.findById(itemDto.getProductVariantId())
 							.orElseThrow(() -> new ResouceNotFoundException(
 									"Variant not found: " + itemDto.getProductVariantId()));
+					
+					// KIỂM TRA VÀ TRỪ TỒN KHO
+					if (variant.getStockQuantity() < itemDto.getQuantity()) {
+						throw new RuntimeException("Sản phẩm " + variant.getProducts().getName() + " (Size: " + variant.getSize() + ") không đủ hàng trong kho! Cần: " + itemDto.getQuantity() + ", Còn: " + variant.getStockQuantity());
+					}
+					variant.setStockQuantity(variant.getStockQuantity() - itemDto.getQuantity());
+					productVariantRepository.save(variant);
+
 					item.setProductVariants(variant);
-					item.setProductId(variant.getProducts().getId());
+
+					// Gán giá chốt tại thời điểm mua từ Variant
+					item.setPriceAtPurchase(variant.getPrice());
+					// Nếu có logic giảm giá từng món (Flash Sale), gán vào đây
+					item.setDiscountAmount(BigDecimal.ZERO); 
 				}
 
 				order.add(item); // set relationships 2 chiều
 
-				BigDecimal itemTotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+				BigDecimal actualPrice = item.getPriceAtPurchase().subtract(item.getDiscountAmount());
+				BigDecimal itemTotal = actualPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
 				total = total.add(itemTotal);
 			}
+		}
+
+		// 3. Xử lý Mã Giảm Giá (Voucher)
+		if (request.getVoucherCode() != null && !request.getVoucherCode().isEmpty()) {
+			com.javaweb.entity.Voucher voucher = voucherRepository.findByCode(request.getVoucherCode())
+					.orElseThrow(() -> new ResouceNotFoundException("Mã giảm giá không hợp lệ: " + request.getVoucherCode()));
+			
+			// Kiểm tra hạn sử dụng
+			if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new java.util.Date())) {
+				throw new RuntimeException("Mã giảm giá đã hết hạn!");
+			}
+			
+			// Kiểm tra số lượt dùng
+			if (voucher.getUsageLimit() != null && voucher.getUsedCount() >= voucher.getUsageLimit()) {
+				throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
+			}
+			
+			// Kiểm tra giá trị tối thiểu của đơn hàng
+			if (voucher.getMinOrderValue() != null && total.compareTo(voucher.getMinOrderValue()) < 0) {
+				throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
+			}
+			
+			// Áp dụng giảm giá
+			total = total.subtract(voucher.getDiscountAmount());
+			if (total.compareTo(BigDecimal.ZERO) < 0) {
+				total = BigDecimal.ZERO; // Không cho phép tổng tiền âm
+			}
+			
+			// Tăng lượt dùng và gán voucher vào hóa đơn
+			voucher.setUsedCount(voucher.getUsedCount() + 1);
+			voucherRepository.save(voucher);
+			order.setVoucher(voucher);
 		}
 
 		// 3. Tính tổng bill dồn kèm giá Ship
@@ -187,12 +205,17 @@ public class OrderServiceImpl implements OrderService {
 		dto.setCreateAt(order.getCreateAt());
 		dto.setTotalPrice(order.getTotalPrice());
 		dto.setShippingFee(order.getShippingFee());
-		dto.setReceiverName(order.getReceiverName());
-		dto.setPhone(order.getPhone());
 		dto.setStatus(order.getStatus());
 
-		if (order.getBillingAddress() != null) {
-			dto.setBillingAddress(mapAddressToDTO(order.getBillingAddress()));
+		// Nặn vỏ bọc AddressDTO từ Hóa đơn (Snapshot)
+		if (order.getBillingStreet() != null || order.getBillingCity() != null) {
+			AddressDTO fakeAddress = new AddressDTO();
+			fakeAddress.setStreet(order.getBillingStreet());
+			fakeAddress.setCity(order.getBillingCity());
+			fakeAddress.setState(order.getBillingState());
+			fakeAddress.setReceiverName(order.getReceiverName());
+			fakeAddress.setPhone(order.getPhone());
+			dto.setBillingAddress(fakeAddress);
 		}
 
 		if (order.getOrderItems() != null) {
@@ -202,30 +225,33 @@ public class OrderServiceImpl implements OrderService {
 			dto.setOrderItems(itemDTOs);
 		}
 
-		return dto;
-	}
+		if (order.getVoucher() != null) {
+			com.javaweb.dto.VoucherDTO voucherDTO = new VoucherDTO();
+			voucherDTO.setCode(order.getVoucher().getCode());
+			voucherDTO.setDiscountAmount(order.getVoucher().getDiscountAmount());
+			dto.setVoucher(voucherDTO);
+		}
 
-	private AddressDTO mapAddressToDTO(Address address) {
-		AddressDTO dto = new AddressDTO();
-		dto.setId(address.getId());
-		dto.setStreet(address.getStreet());
-		dto.setCity(address.getCity());
-		dto.setState(address.getState());
-		dto.setIsDefault(address.getIsDefault());
-		dto.setReceiverName(address.getReceiverName());
-		dto.setPhone(address.getPhone());
 		return dto;
 	}
 
 	private OrderItemDTO mapItemToDTO(OrderItems item) {
 		OrderItemDTO dto = new OrderItemDTO();
 		dto.setId(item.getId());
-		dto.setImageUrl(item.getImageUrl());
-		dto.setUnitPrice(item.getUnitPrice());
+		dto.setPriceAtPurchase(item.getPriceAtPurchase());
+		dto.setDiscountAmount(item.getDiscountAmount());
 		dto.setQuantity(item.getQuantity());
-		dto.setProductId(item.getProductId());
 		if (item.getProductVariants() != null) {
 			dto.setProductVariantId(item.getProductVariants().getId());
+			dto.setSize(item.getProductVariants().getSize());
+			dto.setColor(item.getProductVariants().getColor());
+			if (item.getProductVariants().getProducts() != null) {
+				dto.setProductName(item.getProductVariants().getProducts().getName());
+				// Lấy ảnh đầu tiên của sản phẩm làm hình đại diện
+				if (item.getProductVariants().getProducts().getProductImages() != null && !item.getProductVariants().getProducts().getProductImages().isEmpty()) {
+					dto.setImageUrl(item.getProductVariants().getProducts().getProductImages().iterator().next().getImageUrl());
+				}
+			}
 		}
 		return dto;
 	}

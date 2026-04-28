@@ -32,4 +32,36 @@ public class BrandServiceImpl implements BrandService {
         }
         return brandDTOs;
     }
+
+    @Override
+    public BrandDTO createBrand(BrandDTO brandDTO) {
+        Brand brand = new Brand();
+        brand.setName(brandDTO.getName());
+        brand.setDetail(brandDTO.getDetail());
+        brand.setImage(brandDTO.getImage());
+        brand.setUrl(brandDTO.getUrl());
+        brand = brandRepository.save(brand);
+        brandDTO.setId(brand.getId());
+        return brandDTO;
+    }
+
+    @Override
+    public BrandDTO updateBrand(Long id, BrandDTO brandDTO) {
+        Brand brand = brandRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Brand not found with id: " + id));
+        brand.setName(brandDTO.getName());
+        brand.setDetail(brandDTO.getDetail());
+        brand.setImage(brandDTO.getImage());
+        brand.setUrl(brandDTO.getUrl());
+        brandRepository.save(brand);
+        brandDTO.setId(brand.getId());
+        return brandDTO;
+    }
+
+    @Override
+    public void deleteBrand(Long id) {
+        Brand brand = brandRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Brand not found with id: " + id));
+        brandRepository.delete(brand);
+    }
 }

@@ -38,11 +38,8 @@ public class User {
     @Column(name = "password")
     private String password;
 
-    @Column(name = "is_super_admin") // Đã xóa dấu chấm phẩy ;
-    private Boolean isSuperAdmin;
-
     @Column(name = "level")
-    private String level; // Nên dùng String (vd: Quản lý, Nhân viên)
+    private Long level; // Dùng để tích điểm thành viên
 
     @Column(name = "last_login")
     @UpdateTimestamp

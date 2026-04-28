@@ -1,6 +1,6 @@
 package com.javaweb.service.impl;
 
-import com.javaweb.dto.UserDTO;
+import com.javaweb.dto.*;
 import com.javaweb.entity.User;
 import com.javaweb.repository.UserRepository;
 import com.javaweb.service.UserService;
@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO createUser(com.javaweb.dto.UserRequestDTO request) {
+    public UserDTO createUser(UserRequestDTO request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("email");
         }
@@ -125,7 +125,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDTO updateUser(Long id, com.javaweb.dto.UserRequestDTO request) {
+    public UserDTO updateUser(Long id, UserRequestDTO request) {
         User user = userRepository.findById(id).orElse(null);
         if (user == null) {
             throw new ResouceNotFoundException("User not found with id: " + id);
@@ -158,6 +158,66 @@ public class UserServiceImpl implements UserService {
             dto.setRoleName(user.getRole().getName());
         }
         return dto;
+    }
+
+    @Override
+    public UserDTO getMyProfile(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
+                
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setStatus(user.getStatus());
+        if (user.getRole() != null) {
+            dto.setRoleName(user.getRole().getName());
+        }
+        return dto;
+    }
+
+    @Override
+    public UserDTO updateMyProfile(String email, UserRequestDTO request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
+
+        // Chỉ cho phép cập nhật thông tin cơ bản, chặn thay đổi Status và Role
+        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
+        if (request.getLastName() != null) user.setLastName(request.getLastName());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+
+
+
+        user = userRepository.save(user);
+
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setStatus(user.getStatus());
+        if (user.getRole() != null) {
+            dto.setRoleName(user.getRole().getName());
+        }
+        return dto;
+    }
+
+    @Override
+    public void changePassword(String email, ChangePasswordRequestDTO request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
+
+        // Kiểm tra mật khẩu cũ
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Mật khẩu hiện tại không chính xác!");
+        }
+
+        // Mã hóa và lưu mật khẩu mới
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     @Override

@@ -9,8 +9,13 @@ import java.math.BigDecimal;
 public class OrderItemDTO {
     private Long id;
     private String imageUrl;
-    private BigDecimal unitPrice;
+    private BigDecimal priceAtPurchase;
+    private BigDecimal discountAmount;
     private int quantity;
-    private Long productId;
-    private Long productVariantId; // Trích xuất ID trực tiếp thay vì bế luôn cả một Entity ProductVariant vào
+    private Long productVariantId;
+    
+    // Thêm các trường hiển thị chi tiết sản phẩm cho Frontend đỡ phải gọi API nhiều lần
+    private String productName;
+    private String size;
+    private String color;
 }

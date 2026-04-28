@@ -17,4 +17,7 @@ public class OrderRequestDTO {
     // Cấu trúc địa chỉ giao hàng và danh sách món hàng khách mua
     private AddressDTO billingAddress;
     private List<OrderItemDTO> items;
+    
+    // Thêm mã giảm giá
+    private String voucherCode;
 }

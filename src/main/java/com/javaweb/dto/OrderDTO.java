@@ -16,9 +16,8 @@ public class OrderDTO {
     private String note; 	
     private BigDecimal totalPrice;  
     private Long shippingFee;
-    private String receiverName;
-    private String phone;
     private String status;
     private Set<OrderItemDTO> orderItems = new HashSet<>();
     private AddressDTO billingAddress;
+    private VoucherDTO voucher;
 }
