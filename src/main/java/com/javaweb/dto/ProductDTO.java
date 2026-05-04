@@ -2,6 +2,8 @@ package com.javaweb.dto;
 
 import lombok.Getter;
 import lombok.Setter;
+import java.util.List;
+import java.math.BigDecimal;
 
 @Getter
 @Setter
@@ -16,4 +18,8 @@ public class ProductDTO {
 
     private String categoryName;
     private String brandName;
+
+    private List<ProductImageDTO> images;
+    private List<ProductVariantDTO> variants;
+    private BigDecimal price; // Giá hiển thị đại diện
 }

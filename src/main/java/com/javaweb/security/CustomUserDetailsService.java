@@ -28,10 +28,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         // Đây là quy chuẩn bắt buộc của Spring Security.
         GrantedAuthority authority;
         if (user.getRole() != null) {
-            authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().getName());
+            String roleName = user.getRole().getName().toUpperCase(); // Đảm bảo luôn viết hoa
+            authority = new SimpleGrantedAuthority("ROLE_" + roleName);
         } else {
-            authority = new SimpleGrantedAuthority("ROLE_USER"); // Mặc định nếu chưa có quyền
+            authority = new SimpleGrantedAuthority("ROLE_CUSTOMER");
         }
+
+        System.out.println(">>> Đã nạp quyền cho " + email + ": " + authority.getAuthority());
 
         // Trả về đối tượng UserDetails đặc biệt của Spring
         return new org.springframework.security.core.userdetails.User(

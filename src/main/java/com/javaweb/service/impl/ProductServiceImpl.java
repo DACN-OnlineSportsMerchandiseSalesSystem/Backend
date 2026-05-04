@@ -2,6 +2,8 @@ package com.javaweb.service.impl;
 
 import com.javaweb.dto.ProductDTO;
 import com.javaweb.dto.ProductRequestDTO;
+import com.javaweb.dto.ProductImageDTO;
+import com.javaweb.dto.ProductVariantDTO;
 import com.javaweb.entity.Product;
 import com.javaweb.entity.Category;
 import com.javaweb.entity.Brand;
@@ -124,6 +126,37 @@ public class ProductServiceImpl implements ProductService {
         if (product.getBrand() != null) {
             dto.setBrandName(product.getBrand().getName());
         }
+
+        // Mapping Images
+        if (product.getProductImages() != null) {
+            dto.setImages(product.getProductImages().stream().map(img -> {
+                ProductImageDTO imgDto = new ProductImageDTO();
+                imgDto.setId(img.getId());
+                imgDto.setImageUrl(img.getImageUrl());
+                imgDto.setIsThumbnail(img.getIsThumbnail());
+                return imgDto;
+            }).collect(Collectors.toList()));
+        }
+
+        // Mapping Variants
+        if (product.getProductVariants() != null) {
+            dto.setVariants(product.getProductVariants().stream().map(v -> {
+                ProductVariantDTO vDto = new ProductVariantDTO();
+                vDto.setId(v.getId());
+                vDto.setSkuCode(v.getSkuCode());
+                vDto.setSize(v.getSize());
+                vDto.setColor(v.getColor());
+                vDto.setPrice(v.getPrice());
+                vDto.setStockQuantity(v.getStockQuantity());
+                return vDto;
+            }).collect(Collectors.toList()));
+            
+            // Lấy giá của biến thể đầu tiên làm giá đại diện
+            if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
+                dto.setPrice(dto.getVariants().get(0).getPrice());
+            }
+        }
+
         return dto;
     }
 
