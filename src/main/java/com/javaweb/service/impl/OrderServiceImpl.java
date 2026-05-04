@@ -6,9 +6,7 @@ import com.javaweb.entity.OrderItems;
 import com.javaweb.entity.Orders;
 import com.javaweb.entity.ProductVariant;
 import com.javaweb.exception.ResouceNotFoundException;
-import com.javaweb.repository.OrderRepository;
-import com.javaweb.repository.ProductVariantRepository;
-import com.javaweb.repository.UserRepository;
+import com.javaweb.repository.*;
 import com.javaweb.entity.User;
 import com.javaweb.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +26,7 @@ public class OrderServiceImpl implements OrderService {
 	private final OrderRepository orderRepository;
 	private final ProductVariantRepository productVariantRepository;
 	private final UserRepository userRepository;
-	private final com.javaweb.repository.VoucherRepository voucherRepository;
+	private final VoucherRepository voucherRepository;
 
 	@Override
 	public List<OrderDTO> getAllOrder() {

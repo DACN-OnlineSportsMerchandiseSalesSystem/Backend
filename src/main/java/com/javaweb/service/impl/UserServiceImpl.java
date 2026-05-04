@@ -1,7 +1,7 @@
 package com.javaweb.service.impl;
 
 import com.javaweb.dto.*;
-import com.javaweb.entity.User;
+import com.javaweb.entity.*;
 import com.javaweb.repository.UserRepository;
 import com.javaweb.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -101,8 +101,8 @@ public class UserServiceImpl implements UserService {
         user.setStatus("ACTIVE");
 
         if (request.getRoleName() != null) {
-            com.javaweb.entity.Role role = roleRepository.findByName(request.getRoleName()).orElseGet(() -> {
-                com.javaweb.entity.Role newRole = new com.javaweb.entity.Role();
+            Role role = roleRepository.findByName(request.getRoleName()).orElseGet(() -> {
+                Role newRole = new com.javaweb.entity.Role();
                 newRole.setName(request.getRoleName());
                 return roleRepository.save(newRole);
             });

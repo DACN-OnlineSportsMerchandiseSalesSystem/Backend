@@ -5,7 +5,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class AddCartRequestDTO {
-    private Long productVariantId;
+public class ReturnItemRequestDTO {
+    private Long orderItemId;
     private Integer quantity;
+    private String imageProof;
 }

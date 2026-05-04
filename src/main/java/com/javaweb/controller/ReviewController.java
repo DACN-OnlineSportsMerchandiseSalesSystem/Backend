@@ -1,7 +1,6 @@
 package com.javaweb.controller;
 
-import com.javaweb.dto.ReviewDTO;
-import com.javaweb.dto.ReviewRequestDTO;
+import com.javaweb.dto.*;
 import com.javaweb.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -50,8 +49,8 @@ public class ReviewController {
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<ReviewDTO> replyToReview(
             @PathVariable Long reviewId,
-            @RequestBody java.util.Map<String, String> payload) {
-        String adminReply = payload.get("adminReply");
+            @RequestBody ReviewReplyRequestDTO payload) {
+        String adminReply = payload.getAdminReply();
         if (adminReply == null || adminReply.trim().isEmpty()) {
             throw new IllegalArgumentException("Nội dung phản hồi không được để trống!");
         }

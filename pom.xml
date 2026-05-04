@@ -81,6 +81,18 @@
 	        <groupId>org.springframework.boot</groupId>
 	        <artifactId>spring-boot-starter-validation</artifactId>
 	    </dependency>
+
+	    <!-- Redis Cache cho OTP -->
+	    <dependency>
+	        <groupId>org.springframework.boot</groupId>
+	        <artifactId>spring-boot-starter-data-redis</artifactId>
+	    </dependency>
+
+	    <!-- JavaMailSender để gửi Email OTP -->
+	    <dependency>
+	        <groupId>org.springframework.boot</groupId>
+	        <artifactId>spring-boot-starter-mail</artifactId>
+	    </dependency>
 	</dependencies>
 	
 	<build>
