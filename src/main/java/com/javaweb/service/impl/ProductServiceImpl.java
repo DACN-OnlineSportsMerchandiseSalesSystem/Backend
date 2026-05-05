@@ -12,9 +12,16 @@ import com.javaweb.repository.CategoryRepository;
 import com.javaweb.repository.BrandRepository;
 import com.javaweb.service.ProductService;
 import com.javaweb.exception.ResouceNotFoundException;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.List;
 
@@ -25,6 +32,39 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
+    private final EmbeddingModel embeddingModel;
+    private final EmbeddingStore<TextSegment> embeddingStore;
+
+    @Override
+    public List<ProductDTO> searchProductsAi(String query) {
+        // 1. Chuyển query của khách hàng thành Vector
+        Embedding queryEmbedding = embeddingModel.embed(query).content();
+
+        // 2. Tìm kiếm các sản phẩm có Vector "gần giống" nhất (Độ tương đồng > 0.6)
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, 10, 0.6);
+
+        // 3. Lấy danh sách ID sản phẩm từ kết quả tìm được
+        List<Long> ids = matches.stream()
+                .filter(match -> "product".equals(match.embedded().metadata().getString("type")))
+                .map(match -> Long.parseLong(match.embedded().metadata().getString("id")))
+                .collect(Collectors.toList());
+
+        if (ids.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 4. Truy vấn MySQL để lấy thông tin chi tiết (giá, ảnh, tên...)
+        List<Product> products = productRepository.findAllById(ids);
+        
+        // Duy trì thứ tự sắp xếp theo độ liên quan mà AI đã trả về
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
+        
+        return ids.stream()
+                .filter(productMap::containsKey)
+                .map(id -> mapToDTO(productMap.get(id)))
+                .collect(Collectors.toList());
+    }
 
     @Override
     public List<ProductDTO> getAllProducts() {

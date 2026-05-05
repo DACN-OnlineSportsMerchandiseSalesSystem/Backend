@@ -13,4 +13,5 @@ public interface ProductService {
     ProductDTO createProduct(ProductRequestDTO request);
     ProductDTO updateProduct(Long id, ProductRequestDTO request);
     void deleteProduct(Long id);
+    List<ProductDTO> searchProductsAi(String query);
 }

@@ -55,11 +55,10 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .cors(Customizer.withDefaults()) // Sử dụng bean corsConfigurationSource ở trên
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/chatbot/**", "/api/tts/**").permitAll() // Ưu tiên số 1
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/products/**", "/api/blogs/**").permitAll()
                 .requestMatchers("/api/categories/**", "/api/brands/**").permitAll()
-                .requestMatchers("/api/chat/**").permitAll()
-                .requestMatchers("/api/tts/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )

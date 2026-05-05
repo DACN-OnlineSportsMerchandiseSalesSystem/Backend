@@ -5,9 +5,11 @@ import com.javaweb.dto.ChatbotResponse;
 import com.javaweb.service.ChatbotService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import java.io.IOException;
 
 @RestController
-@RequestMapping("/api/chat")
+@RequestMapping("/api/chatbot")
 @CrossOrigin("*")
 public class ChatbotController {
 
@@ -17,17 +19,45 @@ public class ChatbotController {
         this.chatbotService = chatbotService;
     }
 
+    /**
+     * Phương thức đồng bộ (POST) - Dùng cho lời chào nhanh
+     */
     @PostMapping
     public ResponseEntity<ChatbotResponse> chat(@RequestBody ChatbotRequest request) {
         try {
-            System.out.println(">>> Nhận tin nhắn AI: " + request.getMessage());
             ChatbotResponse response = chatbotService.chat(request.getMessage());
-            System.out.println(">>> Bot trả lời: " + response.getResponse());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            System.err.println("!!! Lỗi Chatbot AI: " + e.getMessage());
             e.printStackTrace();
-            return ResponseEntity.status(500).body(new ChatbotResponse("Hệ thống AI đang gặp sự cố kỹ thuật.", "hệ thống gặp sự cố"));
+            return ResponseEntity.status(500).body(new ChatbotResponse("Lỗi hệ thống", "lỗi hệ thống"));
         }
+    }
+
+    /**
+     * Phương thức phát luồng (GET) - Dùng cho hội thoại Cuốn chiếu
+     */
+    @GetMapping("/stream")
+    public SseEmitter chatStream(@RequestParam String message) {
+        SseEmitter emitter = new SseEmitter(60000L);
+        
+        System.out.println(">>> [STREAM] Nhận tin nhắn AI: " + message);
+
+        chatbotService.streamChat(message)
+            .onNext(token -> {
+                try {
+                    emitter.send(token);
+                } catch (IOException e) {
+                    emitter.completeWithError(e);
+                }
+            })
+            .onComplete(response -> {
+                emitter.complete();
+            })
+            .onError(error -> {
+                emitter.completeWithError(error);
+            })
+            .start();
+
+        return emitter;
     }
 }
