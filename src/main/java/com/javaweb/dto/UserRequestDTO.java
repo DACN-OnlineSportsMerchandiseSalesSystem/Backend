@@ -13,4 +13,6 @@ public class UserRequestDTO {
     private String password;
     private String roleName; // Ví dụ truyền "ADMIN" hoặc "USER"
     private String status;
+    private String turnstileToken; // Bổ sung cho Cloudflare Turnstile
+    private String otp; // Bổ sung cho OTP Email
 }

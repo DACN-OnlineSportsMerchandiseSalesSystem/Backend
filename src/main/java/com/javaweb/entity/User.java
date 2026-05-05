@@ -3,7 +3,8 @@ package com.javaweb.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.UpdateTimestamp; // Đã bỏ comment
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -44,6 +45,10 @@ public class User {
     @Column(name = "last_login")
     @UpdateTimestamp
     private Date lastLogin;
+
+    @Column(name = "created_at")
+    @CreationTimestamp
+    private Date createdAt;
 
     // ================= CÁC MỐI QUAN HỆ =================
 

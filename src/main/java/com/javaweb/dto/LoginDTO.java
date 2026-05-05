@@ -8,4 +8,5 @@ import lombok.Setter;
 public class LoginDTO {
     private String email;
     private String password;
+    private String turnstileToken; // Bổ sung cho Cloudflare Turnstile
 }
