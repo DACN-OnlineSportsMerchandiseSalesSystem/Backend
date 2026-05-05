@@ -34,6 +34,11 @@ public class ProductController {
         return ResponseEntity.ok(productService.getAllProducts());
     }
 
+    @GetMapping("/search-ai")
+    public ResponseEntity<List<ProductDTO>> searchAi(@RequestParam String query) {
+        return ResponseEntity.ok(productService.searchProductsAi(query));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProductDTO> getById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getProductById(id));

@@ -23,14 +23,19 @@ public class TtsService {
 
     public String getTextToSpeechUrl(String text) {
         try {
+            // LÀM SẠCH VĂN BẢN TRƯỚC KHI GỬI (Loại bỏ Emoji và ký tự đặc biệt)
+            String cleanedText = cleanText(text);
+            if (cleanedText.isEmpty()) return null;
+
             HttpHeaders headers = new HttpHeaders();
             headers.set("api-key", apiKey);
             headers.set("voice", voice);
             headers.set("speed", speed);
-            // Quan trọng: Chỉ định rõ UTF-8 để không bị lỗi font tiếng Việt
             headers.setContentType(new MediaType("text", "plain", java.nio.charset.StandardCharsets.UTF_8)); 
 
-            HttpEntity<String> entity = new HttpEntity<>(text, headers);
+            System.out.println("\n>>> [FPT.AI] Đang gửi đoạn văn bản: [" + cleanedText + "]");
+
+            HttpEntity<String> entity = new HttpEntity<>(cleanedText, headers);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(FPT_TTS_URL, entity, Map.class);
 
@@ -46,7 +51,7 @@ public class TtsService {
 
                 String asyncUrl = (String) response.getBody().get("async");
                 if (asyncUrl != null && !asyncUrl.isEmpty()) {
-                    System.out.println(">>> Link âm thanh từ FPT.AI: " + asyncUrl);
+                    // Trả về ngay lập tức để Frontend tự dùng hàm waitAudioReady chạy ngầm (Pipeline)
                     return asyncUrl;
                 }
             } else {
@@ -57,5 +62,47 @@ public class TtsService {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Tối ưu hóa văn bản trước khi gửi lên FPT.AI
+     */
+    private String cleanText(String text) {
+        if (text == null) return "";
+        
+        // 1. Loại bỏ thẻ định dạng (Nếu còn sót lại từ UI)
+        String cleaned = text.replaceAll("\\[TEXT\\]:|\\[VOICE\\]:", "");
+        
+        // 2. Xử lý từ khóa đặc biệt (Để AI đọc chuẩn tiếng Việt nhưng UI vẫn hiển thị tiếng Anh)
+        cleaned = cleaned.replaceAll("(?i)SportZone", "sờ pót dôn");
+        cleaned = cleaned.replaceAll("(?i)SportBot", "sờ pót bót");
+        
+        // 3. Thay thế TOÀN BỘ dấu gạch ngang (thường gặp trong phiên âm e-a, nai-ki) thành khoảng trắng
+        cleaned = cleaned.replaceAll("-", " ");
+        
+        // 4. Xử lý thông minh các đơn vị đo lường/tiền tệ bị dính liền vào số (Ví dụ: 2.990.000đ -> 2.990.000 đồng, 260g -> 260 gam)
+        // Dùng \d kết hợp bắt nhóm để tránh lỗi Word Boundary (\b) không hoạt động với tiếng Việt
+        cleaned = cleaned.replaceAll("(\\d)\\s*(đ|₫|VND|vnd)", "$1 đồng");
+        cleaned = cleaned.replaceAll("(\\d)\\s*(k|K)(?=[\\s.,]|$)", "$1 nghìn"); // 100k -> 100 nghìn
+        cleaned = cleaned.replaceAll("(\\d)\\s*(kg|Kg|KG)(?=[\\s.,]|$)", "$1 kí lô gam");
+        cleaned = cleaned.replaceAll("(\\d)\\s*(g|G)(?=[\\s.,]|$)", "$1 gam");
+        cleaned = cleaned.replaceAll("(\\d)\\s*(cm|CM)(?=[\\s.,]|$)", "$1 xen ti mét");
+        cleaned = cleaned.replaceAll("(\\d)\\s*(mm|MM)(?=[\\s.,]|$)", "$1 mi li mét");
+        
+        // 4. Xử lý mã sản phẩm (Dấu gạch dưới)
+        cleaned = cleaned.replaceAll("([a-zA-Z0-9])_([a-zA-Z0-9])", "$1 $2");
+
+        // 5. GIẢI PHÁP MẠNH: Chỉ giữ lại Chữ cái (bao gồm Tiếng Việt), Số, Dấu chấm, Dấu phẩy, Khoảng trắng
+        cleaned = cleaned.replaceAll("[^a-zA-Z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ\\s.,]", " ");
+        
+        // 6. Loại bỏ khoảng trắng thừa
+        String finalCleaned = cleaned.trim().replaceAll("\\s+", " ");
+        
+        // 7. KIỂM TRA QUAN TRỌNG: Nếu chuỗi chỉ toàn dấu câu (. ,) mà không có chữ/số nào -> FPT.AI sẽ lỗi
+        if (!finalCleaned.matches(".*[a-zA-Z0-9àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ].*")) {
+            return ""; // Trả về rỗng để bỏ qua
+        }
+        
+        return finalCleaned;
     }
 }

@@ -38,4 +38,7 @@ public class Blog {
 
     @Column(name = "image_url")
     private String imageUrl;
+
+    @Column(name = "is_vectorized")
+    private Boolean isVectorized = false;
 }

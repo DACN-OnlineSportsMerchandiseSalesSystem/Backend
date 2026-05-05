@@ -59,4 +59,7 @@ public class Product { // Tên Class KHÔNG CÓ 's'
     // 1 Sản phẩm có nhiều Đánh giá
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "products")
     private Set<Review> reviews = new HashSet<>();
+
+    @Column(name = "is_vectorized")
+    private Boolean isVectorized = false;
 }
