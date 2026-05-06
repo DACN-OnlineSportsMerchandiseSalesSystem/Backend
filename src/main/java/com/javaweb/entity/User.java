@@ -46,7 +46,7 @@ public class User {
     @UpdateTimestamp
     private Date lastLogin;
 
-    @Column(name = "created_at")
+    @Column(name = "creaed_at")
     @CreationTimestamp
     private Date createdAt;
 

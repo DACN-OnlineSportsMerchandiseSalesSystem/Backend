@@ -12,4 +12,5 @@ public interface VoucherService {
     List<VoucherDTO> getAllVouchers();
     List<VoucherDTO> getValidVouchers();
     VoucherDTO getVoucherById(Long id);
+    VoucherDTO checkVoucher(String code, java.math.BigDecimal orderValue);
 }

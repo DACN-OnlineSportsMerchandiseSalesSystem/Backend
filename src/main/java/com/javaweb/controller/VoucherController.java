@@ -27,6 +27,14 @@ public class VoucherController {
         return ResponseEntity.ok(voucherService.getValidVouchers());
     }
 
+    @GetMapping
+    public ResponseEntity<VoucherDTO> checkVoucher(
+            @RequestParam String code, 
+            @RequestParam java.math.BigDecimal orderValue) {
+        // Trả về thông tin Voucher (bao gồm số tiền giảm) nếu hợp lệ
+        return ResponseEntity.ok(voucherService.checkVoucher(code, orderValue));
+    }
+
     // ==========================================
     // NHÓM API DÀNH CHO ADMIN QUẢN LÝ
     // ==========================================

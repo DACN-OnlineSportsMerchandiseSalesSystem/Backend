@@ -4,7 +4,7 @@ import com.javaweb.dto.OrderDTO;
 import java.util.List;
 
 public interface OrderService {
-	List<OrderDTO> getAllOrder();
+	List<OrderDTO> getAllOrder(String status, java.util.Date fromDate, java.util.Date toDate, String keyword);
 
 	OrderDTO getOrderById(Long id);
 	

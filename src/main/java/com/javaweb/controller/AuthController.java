@@ -22,6 +22,7 @@ public class AuthController {
     private final UserService userService;
     private final TurnstileService turnstileService;
     private final OtpService otpService;
+    private final EmailService emailService;
 
     // 1. TÍNH NĂNG ĐĂNG NHẬP
     @PostMapping("/login")
@@ -62,7 +63,7 @@ public class AuthController {
         // Tạo và gửi OTP
         String otp = otpService.generateOtp(email);
         try {
-            otpService.sendOtpEmail(email, otp);
+            emailService.sendOtpEmail(email, otp);
             return ResponseEntity.ok("Mã OTP đã được gửi đến email của bạn.");
         } catch (Exception e) {
             System.err.println("Lỗi gửi email: " + e.getMessage());

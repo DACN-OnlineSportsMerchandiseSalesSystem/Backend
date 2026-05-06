@@ -85,6 +85,26 @@ public class VoucherServiceImpl implements VoucherService {
         return mapToDTO(voucher);
     }
 
+    @Override
+    public VoucherDTO checkVoucher(String code, java.math.BigDecimal orderValue) {
+        Voucher voucher = voucherRepository.findByCode(code)
+                .orElseThrow(() -> new ResouceNotFoundException("Mã giảm giá không tồn tại: " + code));
+
+        if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new java.util.Date())) {
+            throw new RuntimeException("Mã giảm giá đã hết hạn!");
+        }
+
+        if (voucher.getUsageLimit() != null && voucher.getUsedCount() >= voucher.getUsageLimit()) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
+        }
+
+        if (voucher.getMinOrderValue() != null && orderValue.compareTo(voucher.getMinOrderValue()) < 0) {
+            throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
+        }
+
+        return mapToDTO(voucher);
+    }
+
     private VoucherDTO mapToDTO(Voucher voucher) {
         VoucherDTO dto = new VoucherDTO();
         dto.setId(voucher.getId());

@@ -9,6 +9,7 @@ import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiStreamingChatModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.chroma.ChromaEmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -46,9 +47,12 @@ public class AiConfig {
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
         // Cố gắng sửa lỗi 405 bằng cách thêm dấu / vào cuối baseUrl
-        return ChromaEmbeddingStore.builder()
-                .baseUrl("http://127.0.0.1:8000/")
-                .collectionName("sport_assistant_v1") // Thử một collection name mới
-                .build();
+        // return ChromaEmbeddingStore.builder()
+        // .baseUrl("http://127.0.0.1:8000/")
+        // .collectionName("sport_assistant_v1") // Thử một collection name mới
+        // .build();
+
+        // Sử dụng InMemoryEmbeddingStore để không cần chạy ChromaDB
+        return new InMemoryEmbeddingStore<>();
     }
 }

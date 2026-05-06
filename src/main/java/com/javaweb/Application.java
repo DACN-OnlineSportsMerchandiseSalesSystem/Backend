@@ -6,6 +6,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
+@org.springframework.scheduling.annotation.EnableAsync
 public class Application {
 
 	public static void main(String[] args) {
@@ -14,3 +15,4 @@ public class Application {
 	}
 
 }
+ 	

@@ -8,7 +8,7 @@ import com.javaweb.entity.ProductVariant;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.*;
 import com.javaweb.entity.User;
-import com.javaweb.service.OrderService;
+import com.javaweb.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -27,16 +27,26 @@ public class OrderServiceImpl implements OrderService {
 	private final ProductVariantRepository productVariantRepository;
 	private final UserRepository userRepository;
 	private final VoucherRepository voucherRepository;
+	private final EmailService emailService;
 
 	@Override
-	public List<OrderDTO> getAllOrder() {
-		List<Orders> orders = orderRepository.findAll();
+	public List<OrderDTO> getAllOrder(String status, java.util.Date fromDate, java.util.Date toDate, String keyword) {
+		// Điều chỉnh toDate đến cuối ngày để bao gồm cả ngày hôm đó
+		if (toDate != null) {
+			java.util.Calendar cal = java.util.Calendar.getInstance();
+			cal.setTime(toDate);
+			cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
+			cal.set(java.util.Calendar.MINUTE, 59);
+			cal.set(java.util.Calendar.SECOND, 59);
+			toDate = cal.getTime();
+		}
+
+		List<Orders> orders = orderRepository.findWithFilters(status, fromDate, toDate, keyword);
 		return orders.stream()
 				.map(this::mapToDTO)
 				.collect(Collectors.toList());
 	}
 
-	
 	@Override
 	public OrderDTO updateOrderStatus(Long id, String status) {
 		Orders order = orderRepository.findById(id)
@@ -49,8 +59,9 @@ public class OrderServiceImpl implements OrderService {
 	public OrderDTO deleteOrder(Long id) {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
-		// Trong Thương Mại Điện Tử không bao giờ "Xóa Cứng" mất biên lai, ta chỉ Xóa Mềm (CANCELED)
-		order.setStatus("CANCELED"); 
+		// Trong Thương Mại Điện Tử không bao giờ "Xóa Cứng" mất biên lai, ta chỉ Xóa
+		// Mềm (CANCELED)
+		order.setStatus("CANCELED");
 		orderRepository.save(order);
 		return mapToDTO(order);
 	}
@@ -99,7 +110,7 @@ public class OrderServiceImpl implements OrderService {
 		Orders order = new Orders();
 		order.setUser(user);
 		order.setNote(request.getNote());
-		order.setShippingFee(request.getShippingFee());
+		order.setShippingFee(30000L); // Fix cứng phí ship là 30k để chống Cheat
 		order.setReceiverName(request.getReceiverName());
 		order.setPhone(request.getPhone());
 		order.setStatus("PENDING"); // Đơn hàng mới nằm ở trạng thái Chờ Xử Lý
@@ -119,9 +130,9 @@ public class OrderServiceImpl implements OrderService {
 			}
 		}
 
-		// 2. Map từng món hàng (OrderItemDTO -> OrderItems)
+		// 2. Map từng món hàng (OrderItemRequestDTO -> OrderItems)
 		if (request.getItems() != null) {
-			for (OrderItemDTO itemDto : request.getItems()) {
+			for (OrderItemRequestDTO itemDto : request.getItems()) {
 				OrderItems item = new OrderItems();
 				item.setQuantity(itemDto.getQuantity());
 
@@ -129,10 +140,12 @@ public class OrderServiceImpl implements OrderService {
 					ProductVariant variant = productVariantRepository.findById(itemDto.getProductVariantId())
 							.orElseThrow(() -> new ResouceNotFoundException(
 									"Variant not found: " + itemDto.getProductVariantId()));
-					
+
 					// KIỂM TRA VÀ TRỪ TỒN KHO
 					if (variant.getStockQuantity() < itemDto.getQuantity()) {
-						throw new RuntimeException("Sản phẩm " + variant.getProducts().getName() + " (Size: " + variant.getSize() + ") không đủ hàng trong kho! Cần: " + itemDto.getQuantity() + ", Còn: " + variant.getStockQuantity());
+						throw new RuntimeException("Sản phẩm " + variant.getProducts().getName() + " (Size: "
+								+ variant.getSize() + ") không đủ hàng trong kho! Cần: " + itemDto.getQuantity()
+								+ ", Còn: " + variant.getStockQuantity());
 					}
 					variant.setStockQuantity(variant.getStockQuantity() - itemDto.getQuantity());
 					productVariantRepository.save(variant);
@@ -142,7 +155,7 @@ public class OrderServiceImpl implements OrderService {
 					// Gán giá chốt tại thời điểm mua từ Variant
 					item.setPriceAtPurchase(variant.getPrice());
 					// Nếu có logic giảm giá từng món (Flash Sale), gán vào đây
-					item.setDiscountAmount(BigDecimal.ZERO); 
+					item.setDiscountAmount(BigDecimal.ZERO);
 				}
 
 				order.add(item); // set relationships 2 chiều
@@ -156,42 +169,51 @@ public class OrderServiceImpl implements OrderService {
 		// 3. Xử lý Mã Giảm Giá (Voucher)
 		if (request.getVoucherCode() != null && !request.getVoucherCode().isEmpty()) {
 			com.javaweb.entity.Voucher voucher = voucherRepository.findByCode(request.getVoucherCode())
-					.orElseThrow(() -> new ResouceNotFoundException("Mã giảm giá không hợp lệ: " + request.getVoucherCode()));
-			
+					.orElseThrow(() -> new ResouceNotFoundException(
+							"Mã giảm giá không hợp lệ: " + request.getVoucherCode()));
+
 			// Kiểm tra hạn sử dụng
 			if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new java.util.Date())) {
 				throw new RuntimeException("Mã giảm giá đã hết hạn!");
 			}
-			
+
 			// Kiểm tra số lượt dùng
 			if (voucher.getUsageLimit() != null && voucher.getUsedCount() >= voucher.getUsageLimit()) {
 				throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
 			}
-			
+
 			// Kiểm tra giá trị tối thiểu của đơn hàng
 			if (voucher.getMinOrderValue() != null && total.compareTo(voucher.getMinOrderValue()) < 0) {
-				throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
+				throw new RuntimeException(
+						"Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
 			}
-			
+
 			// Áp dụng giảm giá
 			total = total.subtract(voucher.getDiscountAmount());
 			if (total.compareTo(BigDecimal.ZERO) < 0) {
 				total = BigDecimal.ZERO; // Không cho phép tổng tiền âm
 			}
-			
+
 			// Tăng lượt dùng và gán voucher vào hóa đơn
 			voucher.setUsedCount(voucher.getUsedCount() + 1);
 			voucherRepository.save(voucher);
 			order.setVoucher(voucher);
 		}
 
-		// 3. Tính tổng bill dồn kèm giá Ship
-		if (order.getShippingFee() != null) {
-			total = total.add(BigDecimal.valueOf(order.getShippingFee()));
-		}
+		// 4. Tính tổng bill dồn kèm giá Ship (Mặc định 30k)
+		total = total.add(BigDecimal.valueOf(30000));
 		order.setTotalPrice(total);
 
-		return mapToDTO(orderRepository.save(order));
+		Orders savedOrder = orderRepository.save(order);
+
+		// Gửi Email thông báo bất đồng bộ
+		try {
+			emailService.confirmOrder(userEmail, request, total);
+		} catch (Exception e) {
+			System.err.println("Không thể gửi email xác nhận: " + e.getMessage());
+		}
+
+		return mapToDTO(savedOrder);
 	}
 
 	// --- CÁC HÀM TIỆN ÍCH DÙNG ĐỂ COPY OBJECT --- //
@@ -246,8 +268,10 @@ public class OrderServiceImpl implements OrderService {
 			if (item.getProductVariants().getProducts() != null) {
 				dto.setProductName(item.getProductVariants().getProducts().getName());
 				// Lấy ảnh đầu tiên của sản phẩm làm hình đại diện
-				if (item.getProductVariants().getProducts().getProductImages() != null && !item.getProductVariants().getProducts().getProductImages().isEmpty()) {
-					dto.setImageUrl(item.getProductVariants().getProducts().getProductImages().iterator().next().getImageUrl());
+				if (item.getProductVariants().getProducts().getProductImages() != null
+						&& !item.getProductVariants().getProducts().getProductImages().isEmpty()) {
+					dto.setImageUrl(
+							item.getProductVariants().getProducts().getProductImages().iterator().next().getImageUrl());
 				}
 			}
 		}

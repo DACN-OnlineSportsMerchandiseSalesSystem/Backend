@@ -7,10 +7,12 @@ import lombok.RequiredArgsConstructor;
 import com.javaweb.dto.OrderRequestDTO;
 //library
 import java.util.List;
+import java.util.Date;
 //springframework
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
+import  org.springframework.format.annotation.DateTimeFormat;
 
 @RestController
 @RequestMapping("/api/orders") // Cổng API cho Frontend gọi
@@ -28,8 +30,12 @@ public class OrderController {
 
     // HTTP GET: Tuyến đường Dành riêng cho ADMIN để xem toàn bộ Đơn hàng trên hệ thống
     @GetMapping("/all")
-    public ResponseEntity<List<OrderDTO>> getAllOrdersForAdmin() {
-        return ResponseEntity.ok(orderService.getAllOrder());
+    public ResponseEntity<List<OrderDTO>> getAllOrdersForAdmin(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date toDate,
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(orderService.getAllOrder(status, fromDate, toDate, keyword));
     }
 
     // HTTP POST: localhost:8080/api/orders

@@ -41,7 +41,6 @@
 	        <groupId>org.projectlombok</groupId>
 	        <artifactId>lombok</artifactId>
 	        <optional>true</optional>
-	        <version>1.18.36</version>
 	    </dependency>
 
 		<!-- Spring Security -->
@@ -120,6 +119,13 @@
 			<artifactId>langchain4j-chroma</artifactId>
 			<version>0.36.2</version>
 		</dependency>
+
+		<!-- Cloudinary for Image Upload -->
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http44</artifactId>
+			<version>1.36.0</version>
+		</dependency>
 	</dependencies>
 	
 	<build>
@@ -144,7 +150,6 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							<version>1.18.36</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
