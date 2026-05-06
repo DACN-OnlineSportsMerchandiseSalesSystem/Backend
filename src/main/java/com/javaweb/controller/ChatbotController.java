@@ -2,11 +2,11 @@ package com.javaweb.controller;
 
 import com.javaweb.dto.ChatbotRequest;
 import com.javaweb.dto.ChatbotResponse;
+import com.javaweb.dto.ChatbotStreamRequest;
 import com.javaweb.service.ChatbotService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/chatbot")
@@ -20,7 +20,7 @@ public class ChatbotController {
     }
 
     /**
-     * Phương thức đồng bộ (POST) - Dùng cho lời chào nhanh
+     * Phương thức đồng bộ (POST) — Dùng cho lời chào nhanh
      */
     @PostMapping
     public ResponseEntity<ChatbotResponse> chat(@RequestBody ChatbotRequest request) {
@@ -34,29 +34,28 @@ public class ChatbotController {
     }
 
     /**
-     * Phương thức phát luồng (GET) - Dùng cho hội thoại Cuốn chiếu
+     * Phương thức phát luồng (POST) — RAG Hybrid hoặc Pure RAG tuỳ productId
+     *
+     * Body: { "message": "...", "productId": 1 }
+     * - Có productId  → Trường hợp A: Hybrid RAG (sản phẩm + kho tri thức)
+     * - Không có      → Trường hợp B: Pure RAG (chỉ kho tri thức)
      */
-    @GetMapping("/stream")
-    public SseEmitter chatStream(@RequestParam String message) {
+    @PostMapping("/stream")
+    public SseEmitter chatStream(@RequestBody ChatbotStreamRequest request) {
         SseEmitter emitter = new SseEmitter(60000L);
-        
-        System.out.println(">>> [STREAM] Nhận tin nhắn AI: " + message);
 
-        chatbotService.streamChat(message)
-            .onNext(token -> {
-                try {
-                    emitter.send(token);
-                } catch (IOException e) {
-                    emitter.completeWithError(e);
-                }
-            })
-            .onComplete(response -> {
-                emitter.complete();
-            })
-            .onError(error -> {
-                emitter.completeWithError(error);
-            })
-            .start();
+        String message = request.getMessage();
+        Long productId = request.getProductId();
+
+        System.out.printf(">>> [STREAM] message='%s' | productId=%s%n", message, productId);
+
+        if (productId != null) {
+            // Trường hợp A: Trang Chi tiết Sản phẩm → Hybrid RAG
+            chatbotService.streamHybrid(message, productId, emitter);
+        } else {
+            // Trường hợp B: Ngoài trang Sản phẩm → Pure RAG
+            chatbotService.streamPureRag(message, emitter);
+        }
 
         return emitter;
     }
