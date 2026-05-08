@@ -25,6 +25,10 @@ public class CategoryServiceImpl implements CategoryService {
             CategoryDTO dto = new CategoryDTO();
             dto.setId(category.getId());
             dto.setName(category.getName());
+            dto.setSlug(category.getSlug());
+            dto.setStatus(category.getStatus());
+            dto.setDiscount(category.getDiscount());
+            dto.setRating(category.getRating());
             categoryDTOs.add(dto);
         }
         return categoryDTOs;
@@ -34,6 +38,10 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryDTO createCategory(CategoryDTO categoryDTO) {
         Category category = new Category();
         category.setName(categoryDTO.getName());
+        category.setSlug(categoryDTO.getSlug());
+        category.setStatus(categoryDTO.getStatus());
+        category.setDiscount(categoryDTO.getDiscount());
+        category.setRating(categoryDTO.getRating());
         category = categoryRepository.save(category);
         categoryDTO.setId(category.getId());
         return categoryDTO;
@@ -44,6 +52,10 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
         category.setName(categoryDTO.getName());
+        category.setSlug(categoryDTO.getSlug());
+        category.setStatus(categoryDTO.getStatus());
+        category.setDiscount(categoryDTO.getDiscount());
+        category.setRating(categoryDTO.getRating());
         categoryRepository.save(category);
         categoryDTO.setId(category.getId());
         return categoryDTO;

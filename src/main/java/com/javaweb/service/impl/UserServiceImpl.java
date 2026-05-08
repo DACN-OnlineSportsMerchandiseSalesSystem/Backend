@@ -40,7 +40,7 @@ public class UserServiceImpl implements UserService {
             dto.setEmail(user.getEmail());
             dto.setPhone(user.getPhone());
             dto.setStatus(user.getStatus());
-
+            dto.setLevel(user.getLevel());
             // Xử lý cẩn thận cái Role (Kiểm tra null để tránh lỗi NullPointerException)
             if (user.getRole() != null) {
                 dto.setRoleName(user.getRole().getName());
@@ -70,7 +70,7 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
-
+        dto.setLevel(user.getLevel());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -118,6 +118,7 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
+        dto.setLevel(user.getLevel());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -154,6 +155,7 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
+        dto.setLevel(user.getLevel());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -172,6 +174,7 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
+        dto.setLevel(user.getLevel());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -188,8 +191,6 @@ public class UserServiceImpl implements UserService {
         if (request.getLastName() != null) user.setLastName(request.getLastName());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
 
-
-
         user = userRepository.save(user);
 
         UserDTO dto = new UserDTO();
@@ -199,6 +200,7 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
+        dto.setLevel(user.getLevel());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }

@@ -16,4 +16,10 @@ public class VoucherDTO {
     private Integer usedCount;
     private Date expiryDate;
     private Date createdAt;
+    private Long categoryId;
+    private String categoryName;
+    private Long brandId;
+    private String brandName;
+    private Long sportId;
+    private String sportName;
 }

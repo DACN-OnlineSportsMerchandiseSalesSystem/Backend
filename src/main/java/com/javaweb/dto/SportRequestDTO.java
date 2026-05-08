@@ -5,12 +5,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class BrandDTO {
-    private Long id;
+public class SportRequestDTO {
     private String name;
-    private String detail;
-    private String imageUrl;
+    private String slug;
+    private Integer rating;
     private String status;
     private Integer discount;
-    private Integer rating;
 }

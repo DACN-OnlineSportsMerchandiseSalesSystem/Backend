@@ -9,6 +9,12 @@ import com.javaweb.service.VoucherService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import com.javaweb.repository.CategoryRepository;
+import com.javaweb.repository.BrandRepository;
+import com.javaweb.repository.SportRepository;
+import com.javaweb.entity.Category;
+import com.javaweb.entity.Brand;
+import com.javaweb.entity.Sport;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -17,6 +23,9 @@ import java.util.stream.Collectors;
 public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository voucherRepository;
+    private final CategoryRepository categoryRepository;
+    private final BrandRepository brandRepository;
+    private final SportRepository sportRepository;
 
     @Override
     public VoucherDTO createVoucher(VoucherRequestDTO requestDTO) {
@@ -31,6 +40,24 @@ public class VoucherServiceImpl implements VoucherService {
         voucher.setUsageLimit(requestDTO.getUsageLimit());
         voucher.setExpiryDate(requestDTO.getExpiryDate());
         voucher.setUsedCount(0);
+
+        if (requestDTO.getCategoryId() != null) {
+            Category category = categoryRepository.findById(requestDTO.getCategoryId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Category not found with id: " + requestDTO.getCategoryId()));
+            voucher.setCategory(category);
+        }
+
+        if (requestDTO.getBrandId() != null) {
+            Brand brand = brandRepository.findById(requestDTO.getBrandId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Brand not found with id: " + requestDTO.getBrandId()));
+            voucher.setBrand(brand);
+        }
+
+        if (requestDTO.getSportId() != null) {
+            Sport sport = sportRepository.findById(requestDTO.getSportId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Sport not found with id: " + requestDTO.getSportId()));
+            voucher.setSport(sport);
+        }
 
         Voucher savedVoucher = voucherRepository.save(voucher);
         return mapToDTO(savedVoucher);
@@ -52,6 +79,30 @@ public class VoucherServiceImpl implements VoucherService {
         voucher.setMinOrderValue(requestDTO.getMinOrderValue());
         voucher.setUsageLimit(requestDTO.getUsageLimit());
         voucher.setExpiryDate(requestDTO.getExpiryDate());
+
+        if (requestDTO.getCategoryId() != null) {
+            Category category = categoryRepository.findById(requestDTO.getCategoryId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Category not found with id: " + requestDTO.getCategoryId()));
+            voucher.setCategory(category);
+        } else {
+            voucher.setCategory(null);
+        }
+
+        if (requestDTO.getBrandId() != null) {
+            Brand brand = brandRepository.findById(requestDTO.getBrandId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Brand not found with id: " + requestDTO.getBrandId()));
+            voucher.setBrand(brand);
+        } else {
+            voucher.setBrand(null);
+        }
+
+        if (requestDTO.getSportId() != null) {
+            Sport sport = sportRepository.findById(requestDTO.getSportId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Sport not found with id: " + requestDTO.getSportId()));
+            voucher.setSport(sport);
+        } else {
+            voucher.setSport(null);
+        }
 
         Voucher updatedVoucher = voucherRepository.save(voucher);
         return mapToDTO(updatedVoucher);
@@ -115,6 +166,18 @@ public class VoucherServiceImpl implements VoucherService {
         dto.setUsedCount(voucher.getUsedCount());
         dto.setExpiryDate(voucher.getExpiryDate());
         dto.setCreatedAt(voucher.getCreatedAt());
+        if (voucher.getCategory() != null) {
+            dto.setCategoryId(voucher.getCategory().getId());
+            dto.setCategoryName(voucher.getCategory().getName());
+        }
+        if (voucher.getBrand() != null) {
+            dto.setBrandId(voucher.getBrand().getId());
+            dto.setBrandName(voucher.getBrand().getName());
+        }
+        if (voucher.getSport() != null) {
+            dto.setSportId(voucher.getSport().getId());
+            dto.setSportName(voucher.getSport().getName());
+        }
         return dto;
     }
 }

@@ -87,6 +87,7 @@ public class AuthController {
         if (requestDto.getPhone() != null && userService.existsByPhone(requestDto.getPhone())) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Số điện thoại này đã được sử dụng!");
         }
+        // thêm condition về mật khẩu  ()()()()()()()()()()()(AQ	 
         if (requestDto.getPassword() == null || requestDto.getPassword().length() < 6) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Mật khẩu phải có ít nhất 6 ký tự!");
         }

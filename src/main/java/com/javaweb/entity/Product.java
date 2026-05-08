@@ -46,6 +46,10 @@ public class Product { // Tên Class KHÔNG CÓ 's'
     @JoinColumn(name = "category_id")
     private Category category; // Nên đổi tên class Categories thành Category
 
+    @ManyToOne
+    @JoinColumn(name = "sport_id")
+    private Sport sport;
+
     // --- CÁC MỐI QUAN HỆ ONE-TO-MANY (Kéo thằng khác vào) ---
 
     // 1 Sản phẩm có nhiều Biến thể (Size, màu)

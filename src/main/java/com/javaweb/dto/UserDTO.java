@@ -12,5 +12,6 @@ public class UserDTO {
     private String email;
     private String phone;
     private String status;
+    private Long level;
     private String roleName; // Chú ý: Chỉ trả về TÊN quyền (VD: "ADMIN"), chứ không trả nguyên object Role
 }

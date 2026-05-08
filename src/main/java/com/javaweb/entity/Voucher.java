@@ -46,4 +46,19 @@ public class Voucher {
     // 1 Voucher áp dụng cho nhiều Đơn Hàng
     @OneToMany(mappedBy = "voucher")
     private Set<Orders> orders = new HashSet<>();
+
+    // 1 Voucher có thể giới hạn cho 1 Danh mục
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
+    // 1 Voucher có thể giới hạn cho 1 Thương hiệu
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
+
+    // 1 Voucher có thể giới hạn cho 1 Môn thể thao
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sport_id")
+    private Sport sport;
 }

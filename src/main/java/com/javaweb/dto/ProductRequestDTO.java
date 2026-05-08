@@ -1,5 +1,7 @@
 package com.javaweb.dto;
 
+import java.math.BigDecimal;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,8 +14,13 @@ public class ProductRequestDTO {
     private String description;
     private String slug;
     private String status;
-    
+
+    private Integer discount;
+    private BigDecimal originalPrice;
+
     // Nhận ID từ Frontend thay vì nhận chuỗi tên
+    private Long productVariantId;
     private Long categoryId;
     private Long brandId;
+    private Long sportId;
 }

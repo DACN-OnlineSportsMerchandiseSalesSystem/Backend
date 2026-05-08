@@ -4,6 +4,7 @@ import com.javaweb.dto.*;
 import com.javaweb.entity.Address;
 import com.javaweb.entity.OrderItems;
 import com.javaweb.entity.Orders;
+import com.javaweb.entity.Product;
 import com.javaweb.entity.ProductVariant;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.*;
@@ -51,6 +52,19 @@ public class OrderServiceImpl implements OrderService {
 	public OrderDTO updateOrderStatus(Long id, String status) {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
+
+		// Cộng điểm khi đơn hàng được đánh dấu là COMPLETED
+		if ("COMPLETED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(order.getStatus())) {
+			User user = order.getUser();
+			if (user != null) {
+				Long currentPoints = user.getLevel() != null ? user.getLevel() : 0L;
+				// 100.000 VNĐ = 1 điểm
+				long addedPoints = order.getTotalPrice().divideToIntegralValue(BigDecimal.valueOf(100000)).longValue();
+				user.setLevel(currentPoints + addedPoints);
+				userRepository.save(user);
+			}
+		}
+
 		order.setStatus(status);
 		return mapToDTO(orderRepository.save(order));
 	}
@@ -182,14 +196,49 @@ public class OrderServiceImpl implements OrderService {
 				throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
 			}
 
-			// Kiểm tra giá trị tối thiểu của đơn hàng
-			if (voucher.getMinOrderValue() != null && total.compareTo(voucher.getMinOrderValue()) < 0) {
-				throw new RuntimeException(
-						"Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
+			// Tính tổng tiền các sản phẩm hợp lệ để áp dụng voucher
+			BigDecimal eligibleTotal = BigDecimal.ZERO;
+			if (voucher.getCategory() == null && voucher.getBrand() == null && voucher.getSport() == null) {
+				// Áp dụng cho toàn bộ đơn hàng
+				eligibleTotal = total;
+			} else {
+				for (OrderItems item : order.getOrderItems()) {
+					if (item.getProductVariants() != null && item.getProductVariants().getProducts() != null) {
+						Product product = item.getProductVariants().getProducts();
+						boolean isEligible = false;
+
+						if (voucher.getCategory() != null && product.getCategory() != null && product.getCategory().getId().equals(voucher.getCategory().getId())) {
+							isEligible = true;
+						}
+						if (voucher.getBrand() != null && product.getBrand() != null && product.getBrand().getId().equals(voucher.getBrand().getId())) {
+							isEligible = true;
+						}
+						if (voucher.getSport() != null && product.getSport() != null && product.getSport().getId().equals(voucher.getSport().getId())) {
+							isEligible = true;
+						}
+
+						if (isEligible) {
+							BigDecimal actualPrice = item.getPriceAtPurchase().subtract(item.getDiscountAmount());
+							BigDecimal itemTotal = actualPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+							eligibleTotal = eligibleTotal.add(itemTotal);
+						}
+					}
+				}
 			}
 
-			// Áp dụng giảm giá
-			total = total.subtract(voucher.getDiscountAmount());
+			// Kiểm tra giá trị tối thiểu của đơn hàng dựa trên các sản phẩm hợp lệ
+			if (voucher.getMinOrderValue() != null && eligibleTotal.compareTo(voucher.getMinOrderValue()) < 0) {
+				throw new RuntimeException(
+						"Tổng tiền các sản phẩm thuộc danh mục/thương hiệu ưu đãi chưa đạt tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
+			}
+
+			// Áp dụng giảm giá (tối đa bằng tổng tiền sản phẩm hợp lệ)
+			BigDecimal discountToApply = voucher.getDiscountAmount();
+			if (discountToApply.compareTo(eligibleTotal) > 0) {
+				discountToApply = eligibleTotal;
+			}
+			
+			total = total.subtract(discountToApply);
 			if (total.compareTo(BigDecimal.ZERO) < 0) {
 				total = BigDecimal.ZERO; // Không cho phép tổng tiền âm
 			}
@@ -199,6 +248,8 @@ public class OrderServiceImpl implements OrderService {
 			voucherRepository.save(voucher);
 			order.setVoucher(voucher);
 		}
+
+
 
 		// 4. Tính tổng bill dồn kèm giá Ship (Mặc định 30k)
 		total = total.add(BigDecimal.valueOf(30000));
