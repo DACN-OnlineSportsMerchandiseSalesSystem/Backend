@@ -6,6 +6,7 @@ import com.javaweb.entity.OrderItems;
 import com.javaweb.entity.Orders;
 import com.javaweb.entity.Product;
 import com.javaweb.entity.ProductVariant;
+import com.javaweb.entity.Voucher;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.*;
 import com.javaweb.entity.User;
@@ -14,10 +15,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import com.javaweb.entity.Category;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Calendar;
 
 @Service
 @RequiredArgsConstructor
@@ -31,14 +35,14 @@ public class OrderServiceImpl implements OrderService {
 	private final EmailService emailService;
 
 	@Override
-	public List<OrderDTO> getAllOrder(String status, java.util.Date fromDate, java.util.Date toDate, String keyword) {
+	public List<OrderDTO> getAllOrder(String status, Date fromDate, Date toDate, String keyword) {
 		// Điều chỉnh toDate đến cuối ngày để bao gồm cả ngày hôm đó
 		if (toDate != null) {
-			java.util.Calendar cal = java.util.Calendar.getInstance();
+			Calendar cal = Calendar.getInstance();
 			cal.setTime(toDate);
-			cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
-			cal.set(java.util.Calendar.MINUTE, 59);
-			cal.set(java.util.Calendar.SECOND, 59);
+			cal.set(Calendar.HOUR_OF_DAY, 23);
+			cal.set(Calendar.MINUTE, 59);
+			cal.set(Calendar.SECOND, 59);
 			toDate = cal.getTime();
 		}
 
@@ -182,12 +186,12 @@ public class OrderServiceImpl implements OrderService {
 
 		// 3. Xử lý Mã Giảm Giá (Voucher)
 		if (request.getVoucherCode() != null && !request.getVoucherCode().isEmpty()) {
-			com.javaweb.entity.Voucher voucher = voucherRepository.findByCode(request.getVoucherCode())
+			Voucher voucher = voucherRepository.findByCode(request.getVoucherCode())
 					.orElseThrow(() -> new ResouceNotFoundException(
 							"Mã giảm giá không hợp lệ: " + request.getVoucherCode()));
 
 			// Kiểm tra hạn sử dụng
-			if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new java.util.Date())) {
+			if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new Date())) {
 				throw new RuntimeException("Mã giảm giá đã hết hạn!");
 			}
 
@@ -198,7 +202,7 @@ public class OrderServiceImpl implements OrderService {
 
 			// Tính tổng tiền các sản phẩm hợp lệ để áp dụng voucher
 			BigDecimal eligibleTotal = BigDecimal.ZERO;
-			if (voucher.getCategory() == null && voucher.getBrand() == null && voucher.getSport() == null) {
+			if (voucher.getCategory() == null && voucher.getBrand() == null) {
 				// Áp dụng cho toàn bộ đơn hàng
 				eligibleTotal = total;
 			} else {
@@ -207,13 +211,15 @@ public class OrderServiceImpl implements OrderService {
 						Product product = item.getProductVariants().getProducts();
 						boolean isEligible = false;
 
-						if (voucher.getCategory() != null && product.getCategory() != null && product.getCategory().getId().equals(voucher.getCategory().getId())) {
-							isEligible = true;
+						if (voucher.getCategory() != null && product.getCategories() != null) {
+							for (Category cat : product.getCategories()) {
+								if (cat.getId().equals(voucher.getCategory().getId())) {
+									isEligible = true;
+									break;
+								}
+							}
 						}
 						if (voucher.getBrand() != null && product.getBrand() != null && product.getBrand().getId().equals(voucher.getBrand().getId())) {
-							isEligible = true;
-						}
-						if (voucher.getSport() != null && product.getSport() != null && product.getSport().getId().equals(voucher.getSport().getId())) {
 							isEligible = true;
 						}
 

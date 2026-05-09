@@ -16,5 +16,4 @@ public class VoucherRequestDTO {
     private Date expiryDate;
     private Long categoryId;
     private Long brandId;
-    private Long sportId;
 }

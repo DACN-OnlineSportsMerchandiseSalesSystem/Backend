@@ -1,6 +1,7 @@
 package com.javaweb.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -20,7 +21,6 @@ public class ProductRequestDTO {
 
     // Nhận ID từ Frontend thay vì nhận chuỗi tên
     private Long productVariantId;
-    private Long categoryId;
+    private List<Long> categoryIds;
     private Long brandId;
-    private Long sportId;
 }

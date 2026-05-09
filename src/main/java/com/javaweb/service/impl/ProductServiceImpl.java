@@ -24,6 +24,9 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -32,7 +35,6 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
-    private final com.javaweb.repository.SportRepository sportRepository;
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
 
@@ -56,11 +58,11 @@ public class ProductServiceImpl implements ProductService {
 
         // 4. Truy vấn MySQL để lấy thông tin chi tiết (giá, ảnh, tên...)
         List<Product> products = productRepository.findAllById(ids);
-        
+
         // Duy trì thứ tự sắp xếp theo độ liên quan mà AI đã trả về
         Map<Long, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, p -> p));
-        
+
         return ids.stream()
                 .filter(productMap::containsKey)
                 .map(id -> mapToDTO(productMap.get(id)))
@@ -127,7 +129,6 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
     }
 
-
     private Product mapToEntity(Product product, ProductRequestDTO request) {
         product.setName(request.getName());
         product.setProductCode(request.getProductCode());
@@ -136,11 +137,11 @@ public class ProductServiceImpl implements ProductService {
         product.setSlug(request.getSlug());
         product.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE"); // Mặc định là ACTIVE
 
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResouceNotFoundException(
-                            "Category not found with id: " + request.getCategoryId()));
-            product.setCategory(category);
+        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
+            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(request.getCategoryIds()));
+            product.setCategories(categories);
+        } else {
+            product.setCategories(new HashSet<>());
         }
 
         if (request.getBrandId() != null) {
@@ -148,15 +149,10 @@ public class ProductServiceImpl implements ProductService {
                     .orElseThrow(
                             () -> new ResouceNotFoundException("Brand not found with id: " + request.getBrandId()));
             product.setBrand(brand);
+        } else {
+            product.setBrand(null);
         }
-        
-        if (request.getSportId() != null) {
-            com.javaweb.entity.Sport sport = sportRepository.findById(request.getSportId())
-                    .orElseThrow(
-                            () -> new ResouceNotFoundException("Sport not found with id: " + request.getSportId()));
-            product.setSport(sport);
-        }
-        
+
         return product;
     }
 
@@ -170,14 +166,12 @@ public class ProductServiceImpl implements ProductService {
         dto.setSlug(product.getSlug());
         dto.setStatus(product.getStatus());
 
-        if (product.getCategory() != null) {
-            dto.setCategoryName(product.getCategory().getName());
+        if (product.getCategories() != null && !product.getCategories().isEmpty()) {
+            dto.setCategoryIds(product.getCategories().stream().map(Category::getId).collect(Collectors.toList()));
+            dto.setCategoryNames(product.getCategories().stream().map(Category::getName).collect(Collectors.toList()));
         }
         if (product.getBrand() != null) {
             dto.setBrandName(product.getBrand().getName());
-        }
-        if (product.getSport() != null) {
-            dto.setSportName(product.getSport().getName());
         }
 
         // Mapping Images
@@ -199,21 +193,28 @@ public class ProductServiceImpl implements ProductService {
                 vDto.setSkuCode(v.getSkuCode());
                 vDto.setSize(v.getSize());
                 vDto.setColor(v.getColor());
-                
+
                 // Logic Khuyến Mãi Đè Chồng (Dynamic Calculation)
                 int effectiveDiscount = 0;
-                if (v.getDiscount() != null) effectiveDiscount = Math.max(effectiveDiscount, v.getDiscount());
-                if (product.getCategory() != null && product.getCategory().getDiscount() != null) effectiveDiscount = Math.max(effectiveDiscount, product.getCategory().getDiscount());
-                if (product.getBrand() != null && product.getBrand().getDiscount() != null) effectiveDiscount = Math.max(effectiveDiscount, product.getBrand().getDiscount());
-                if (product.getSport() != null && product.getSport().getDiscount() != null) effectiveDiscount = Math.max(effectiveDiscount, product.getSport().getDiscount());
+                if (v.getDiscount() != null)
+                    effectiveDiscount = Math.max(effectiveDiscount, v.getDiscount());
+                if (product.getCategories() != null) {
+                    for (Category category : product.getCategories()) {
+                        if (category.getDiscount() != null) {
+                            effectiveDiscount = Math.max(effectiveDiscount, category.getDiscount());
+                        }
+                    }
+                }
+                if (product.getBrand() != null && product.getBrand().getDiscount() != null)
+                    effectiveDiscount = Math.max(effectiveDiscount, product.getBrand().getDiscount());
 
                 vDto.setDiscount(effectiveDiscount);
                 vDto.setOriginalPrice(v.getOriginalPrice());
-                
+
                 if (v.getOriginalPrice() != null) {
-                    java.math.BigDecimal calculatedPrice = v.getOriginalPrice()
-                            .multiply(java.math.BigDecimal.valueOf(100 - effectiveDiscount))
-                            .divide(java.math.BigDecimal.valueOf(100));
+                    BigDecimal calculatedPrice = v.getOriginalPrice()
+                            .multiply(BigDecimal.valueOf(100 - effectiveDiscount))
+                            .divide(BigDecimal.valueOf(100));
                     vDto.setPrice(calculatedPrice);
                 } else {
                     vDto.setPrice(v.getPrice());
@@ -222,7 +223,7 @@ public class ProductServiceImpl implements ProductService {
                 vDto.setStockQuantity(v.getStockQuantity());
                 return vDto;
             }).collect(Collectors.toList()));
-            
+
             // Lấy giá của biến thể đầu tiên làm giá đại diện
             if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
                 dto.setPrice(dto.getVariants().get(0).getPrice());

@@ -18,9 +18,9 @@ public class ProductDTO {
     private Integer discount;
     private Integer rating;
 
-    private String categoryName;
+    private List<Long> categoryIds;
+    private List<String> categoryNames;
     private String brandName;
-    private String sportName;
 
     private List<ProductImageDTO> images;
     private List<ProductVariantDTO> variants;

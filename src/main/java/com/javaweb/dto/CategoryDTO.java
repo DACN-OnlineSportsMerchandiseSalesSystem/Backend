@@ -12,4 +12,6 @@ public class CategoryDTO {
     private String status;
     private Integer discount;
     private Integer rating;
+    private Long parentId;
+    private String parentName;
 }

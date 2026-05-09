@@ -57,8 +57,4 @@ public class Voucher {
     @JoinColumn(name = "brand_id")
     private Brand brand;
 
-    // 1 Voucher có thể giới hạn cho 1 Môn thể thao
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sport_id")
-    private Sport sport;
 }

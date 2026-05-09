@@ -1,8 +1,10 @@
 package com.javaweb.service;
 
 import com.javaweb.entity.Blog;
+import com.javaweb.entity.Category;
 import com.javaweb.entity.Product;
 import com.javaweb.entity.StorePolicy;
+
 import com.javaweb.repository.BlogRepository;
 import com.javaweb.repository.ProductRepository;
 import com.javaweb.repository.StorePolicyRepository;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class DataIngestionService {
@@ -60,7 +63,9 @@ public class DataIngestionService {
             sb.append("Loại: Sản phẩm\n");
             sb.append("Tên: ").append(p.getName() != null ? p.getName() : "").append("\n");
             sb.append("Mã sản phẩm: ").append(p.getProductCode() != null ? p.getProductCode() : "").append("\n");
-            sb.append("Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "Không rõ").append("\n");
+            sb.append("Danh mục: ").append(p.getCategories() != null && !p.getCategories().isEmpty() ? p.getCategories().stream()
+                                    .map(Category::getName)
+                                    .collect(Collectors.joining(", ")) : "Không rõ").append("\n");
             sb.append("Thương hiệu: ").append(p.getBrand() != null ? p.getBrand().getName() : "Không rõ").append("\n");
             sb.append("Mô tả: ").append(p.getDescription() != null ? p.getDescription() : "").append("\n");
 

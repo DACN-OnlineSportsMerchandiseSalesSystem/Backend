@@ -1,6 +1,7 @@
 package com.javaweb.service;
 
 import com.javaweb.entity.Product;
+import com.javaweb.entity.Category;
 import com.javaweb.repository.ProductRepository;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
@@ -30,13 +31,14 @@ public class ChatbotService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatbotService.class);
 
-    private static final String SYSTEM_SPORTBOT =
-        "Bạn là SportBot, trợ lý tư vấn khách hàng chuyên nghiệp của SportZone.\n" +
-        "QUY ĐỊNH:\n" +
-        "- Trả lời TRỰC TIẾP câu hỏi, tự nhiên, thân thiện, ngắn gọn.\n" +
-        "- TUYỆT ĐỐI GIỮ NGUYÊN tên thương hiệu, tên sản phẩm tiếng Anh (Nike, Adidas, Yonex...). KHÔNG phiên âm.\n" +
-        "- KHÔNG bắt đầu câu trả lời bằng 'Dựa trên thông tin...' hay 'Theo ngữ cảnh...'.\n" +
-        "- Có thể dùng emoji phù hợp để thân thiện hơn.";
+    private static final String SYSTEM_SPORTBOT = "Bạn là SportBot, trợ lý tư vấn khách hàng chuyên nghiệp của SportZone.\n"
+            +
+            "QUY ĐỊNH:\n" +
+            "- Trả lời TRỰC TIẾP câu hỏi, tự nhiên, thân thiện, ngắn gọn.\n" +
+            "- TUYỆT ĐỐI GIỮ NGUYÊN tên thương hiệu, tên sản phẩm tiếng Anh (Nike, Adidas, Yonex...). KHÔNG phiên âm.\n"
+            +
+            "- KHÔNG bắt đầu câu trả lời bằng 'Dựa trên thông tin...' hay 'Theo ngữ cảnh...'.\n" +
+            "- Có thể dùng emoji phù hợp để thân thiện hơn.";
 
     private final ChatLanguageModel chatLanguageModel;
     private final StreamingChatLanguageModel streamingChatLanguageModel;
@@ -45,10 +47,10 @@ public class ChatbotService {
     private final ProductRepository productRepository;
 
     public ChatbotService(ChatLanguageModel chatLanguageModel,
-                          StreamingChatLanguageModel streamingChatLanguageModel,
-                          EmbeddingModel embeddingModel,
-                          EmbeddingStore<TextSegment> embeddingStore,
-                          ProductRepository productRepository) {
+            StreamingChatLanguageModel streamingChatLanguageModel,
+            EmbeddingModel embeddingModel,
+            EmbeddingStore<TextSegment> embeddingStore,
+            ProductRepository productRepository) {
         this.chatLanguageModel = chatLanguageModel;
         this.streamingChatLanguageModel = streamingChatLanguageModel;
         this.embeddingModel = embeddingModel;
@@ -64,7 +66,8 @@ public class ChatbotService {
             Embedding queryEmbedding = embeddingModel.embed(question).content();
             List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, maxResults, 0.45);
 
-            if (matches == null || matches.isEmpty()) return "";
+            if (matches == null || matches.isEmpty())
+                return "";
 
             return matches.stream()
                     .map(m -> m.embedded().text())
@@ -80,25 +83,27 @@ public class ChatbotService {
     // =====================================================
     private String buildProductContext(Long productId) {
         Optional<Product> optProduct = productRepository.findById(productId);
-        if (optProduct.isEmpty()) return "";
+        if (optProduct.isEmpty())
+            return "";
 
         Product p = optProduct.get();
         StringBuilder sb = new StringBuilder();
         sb.append("Sản phẩm khách đang xem:\n");
         sb.append("- Tên: ").append(p.getName()).append("\n");
         sb.append("- Thương hiệu: ").append(p.getBrand() != null ? p.getBrand().getName() : "N/A").append("\n");
-        sb.append("- Danh mục: ").append(p.getCategory() != null ? p.getCategory().getName() : "N/A").append("\n");
+        sb.append("- Danh mục: ")
+                .append(p.getCategories() != null && !p.getCategories().isEmpty() ? p.getCategories().stream()
+                        .map(Category::getName).collect(Collectors.joining(", ")) : "N/A")
+                .append("\n");
         sb.append("- Mã SP: ").append(p.getProductCode()).append("\n");
         sb.append("- Mô tả: ").append(p.getDescription() != null ? p.getDescription() : "Không có").append("\n");
 
         if (p.getProductVariants() != null && !p.getProductVariants().isEmpty()) {
             sb.append("- Phiên bản có sẵn trong kho:\n");
-            p.getProductVariants().forEach(v ->
-                sb.append("  • Size ").append(v.getSize())
-                  .append(", Màu ").append(v.getColor())
-                  .append(", Giá: ").append(v.getPrice()).append("đ")
-                  .append(", Tồn: ").append(v.getStockQuantity()).append("\n")
-            );
+            p.getProductVariants().forEach(v -> sb.append("  • Size ").append(v.getSize())
+                    .append(", Màu ").append(v.getColor())
+                    .append(", Giá: ").append(v.getPrice()).append("đ")
+                    .append(", Tồn: ").append(v.getStockQuantity()).append("\n"));
         }
         return sb.toString();
     }
@@ -178,8 +183,8 @@ public class ChatbotService {
     public com.javaweb.dto.ChatbotResponse chat(String message) {
         String ragContext = retrieveFromVectorDb(message, 3);
         String prompt = SYSTEM_SPORTBOT + "\n\n" +
-            (ragContext.isEmpty() ? "" : "[KIẾN THỨC]\n" + ragContext + "\n\n") +
-            "[CÂU HỎI]\n" + message;
+                (ragContext.isEmpty() ? "" : "[KIẾN THỨC]\n" + ragContext + "\n\n") +
+                "[CÂU HỎI]\n" + message;
 
         // LangChain4j 0.36.x: dùng generate(String) cho sync chat
         String raw = chatLanguageModel.generate(prompt);

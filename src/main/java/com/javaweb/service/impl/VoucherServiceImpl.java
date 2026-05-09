@@ -11,12 +11,12 @@ import org.springframework.stereotype.Service;
 
 import com.javaweb.repository.CategoryRepository;
 import com.javaweb.repository.BrandRepository;
-import com.javaweb.repository.SportRepository;
 import com.javaweb.entity.Category;
 import com.javaweb.entity.Brand;
-import com.javaweb.entity.Sport;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.util.Date;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +25,6 @@ public class VoucherServiceImpl implements VoucherService {
     private final VoucherRepository voucherRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
-    private final SportRepository sportRepository;
 
     @Override
     public VoucherDTO createVoucher(VoucherRequestDTO requestDTO) {
@@ -53,11 +52,7 @@ public class VoucherServiceImpl implements VoucherService {
             voucher.setBrand(brand);
         }
 
-        if (requestDTO.getSportId() != null) {
-            Sport sport = sportRepository.findById(requestDTO.getSportId())
-                    .orElseThrow(() -> new ResouceNotFoundException("Sport not found with id: " + requestDTO.getSportId()));
-            voucher.setSport(sport);
-        }
+
 
         Voucher savedVoucher = voucherRepository.save(voucher);
         return mapToDTO(savedVoucher);
@@ -96,13 +91,7 @@ public class VoucherServiceImpl implements VoucherService {
             voucher.setBrand(null);
         }
 
-        if (requestDTO.getSportId() != null) {
-            Sport sport = sportRepository.findById(requestDTO.getSportId())
-                    .orElseThrow(() -> new ResouceNotFoundException("Sport not found with id: " + requestDTO.getSportId()));
-            voucher.setSport(sport);
-        } else {
-            voucher.setSport(null);
-        }
+
 
         Voucher updatedVoucher = voucherRepository.save(voucher);
         return mapToDTO(updatedVoucher);
@@ -137,11 +126,11 @@ public class VoucherServiceImpl implements VoucherService {
     }
 
     @Override
-    public VoucherDTO checkVoucher(String code, java.math.BigDecimal orderValue) {
+    public VoucherDTO checkVoucher(String code, BigDecimal orderValue) {
         Voucher voucher = voucherRepository.findByCode(code)
                 .orElseThrow(() -> new ResouceNotFoundException("Mã giảm giá không tồn tại: " + code));
 
-        if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new java.util.Date())) {
+        if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new Date())) {
             throw new RuntimeException("Mã giảm giá đã hết hạn!");
         }
 
@@ -174,10 +163,7 @@ public class VoucherServiceImpl implements VoucherService {
             dto.setBrandId(voucher.getBrand().getId());
             dto.setBrandName(voucher.getBrand().getName());
         }
-        if (voucher.getSport() != null) {
-            dto.setSportId(voucher.getSport().getId());
-            dto.setSportName(voucher.getSport().getName());
-        }
+
         return dto;
     }
 }

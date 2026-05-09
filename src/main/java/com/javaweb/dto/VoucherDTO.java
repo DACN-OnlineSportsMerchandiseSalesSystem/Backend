@@ -20,6 +20,4 @@ public class VoucherDTO {
     private String categoryName;
     private Long brandId;
     private String brandName;
-    private Long sportId;
-    private String sportName;
 }

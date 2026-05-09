@@ -33,10 +33,14 @@ public class Category {
     @Column(name = "rating")
     private Integer rating;
 
-    
-    // 1 Thương hiệu có nhiều Sản phẩm gốc (Product)
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "category") // Chữ 'b' viết thường
-    private Set<Product> products = new HashSet<>(); // Đổi thành Product và có 's'
-   
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private Category parentCategory;
+
+    @OneToMany(mappedBy = "parentCategory", cascade = CascadeType.ALL)
+    private Set<Category> subCategories = new HashSet<>();
+
+    @ManyToMany(mappedBy = "categories")
+    private Set<Product> products = new HashSet<>();
 
 }

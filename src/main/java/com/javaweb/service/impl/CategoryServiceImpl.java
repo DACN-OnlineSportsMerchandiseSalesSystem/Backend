@@ -29,6 +29,10 @@ public class CategoryServiceImpl implements CategoryService {
             dto.setStatus(category.getStatus());
             dto.setDiscount(category.getDiscount());
             dto.setRating(category.getRating());
+            if (category.getParentCategory() != null) {
+                dto.setParentId(category.getParentCategory().getId());
+                dto.setParentName(category.getParentCategory().getName());
+            }
             categoryDTOs.add(dto);
         }
         return categoryDTOs;
@@ -42,6 +46,13 @@ public class CategoryServiceImpl implements CategoryService {
         category.setStatus(categoryDTO.getStatus());
         category.setDiscount(categoryDTO.getDiscount());
         category.setRating(categoryDTO.getRating());
+        
+        if (categoryDTO.getParentId() != null) {
+            Category parent = categoryRepository.findById(categoryDTO.getParentId())
+                    .orElseThrow(() -> new RuntimeException("Parent Category not found"));
+            category.setParentCategory(parent);
+        }
+        
         category = categoryRepository.save(category);
         categoryDTO.setId(category.getId());
         return categoryDTO;
@@ -56,6 +67,15 @@ public class CategoryServiceImpl implements CategoryService {
         category.setStatus(categoryDTO.getStatus());
         category.setDiscount(categoryDTO.getDiscount());
         category.setRating(categoryDTO.getRating());
+        
+        if (categoryDTO.getParentId() != null) {
+            Category parent = categoryRepository.findById(categoryDTO.getParentId())
+                    .orElseThrow(() -> new RuntimeException("Parent Category not found"));
+            category.setParentCategory(parent);
+        } else {
+            category.setParentCategory(null);
+        }
+        
         categoryRepository.save(category);
         categoryDTO.setId(category.getId());
         return categoryDTO;
