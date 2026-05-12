@@ -2,6 +2,7 @@ package com.javaweb.dto;
 
 import lombok.Getter;
 import lombok.Setter;
+import com.javaweb.enums.UserStatus;
 
 @Getter
 @Setter
@@ -11,7 +12,7 @@ public class UserDTO {
     private String lastName;
     private String email;
     private String phone;
-    private String status;
+    private UserStatus status;
     private Long level;
     private String roleName; // Chú ý: Chỉ trả về TÊN quyền (VD: "ADMIN"), chứ không trả nguyên object Role
 }

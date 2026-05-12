@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Calendar;
+import com.javaweb.enums.OrderStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class OrderServiceImpl implements OrderService {
 	private final EmailService emailService;
 
 	@Override
-	public List<OrderDTO> getAllOrder(String status, Date fromDate, Date toDate, String keyword) {
+	public List<OrderDTO> getAllOrder(OrderStatus status, Date fromDate, Date toDate, String keyword) {
 		// Điều chỉnh toDate đến cuối ngày để bao gồm cả ngày hôm đó
 		if (toDate != null) {
 			Calendar cal = Calendar.getInstance();
@@ -53,12 +54,12 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
-	public OrderDTO updateOrderStatus(Long id, String status) {
+	public OrderDTO updateOrderStatus(Long id, OrderStatus status) {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
 
 		// Cộng điểm khi đơn hàng được đánh dấu là COMPLETED
-		if ("COMPLETED".equalsIgnoreCase(status) && !"COMPLETED".equalsIgnoreCase(order.getStatus())) {
+		if (status == OrderStatus.COMPLETED && order.getStatus() != OrderStatus.COMPLETED) {
 			User user = order.getUser();
 			if (user != null) {
 				Long currentPoints = user.getLevel() != null ? user.getLevel() : 0L;
@@ -79,7 +80,7 @@ public class OrderServiceImpl implements OrderService {
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
 		// Trong Thương Mại Điện Tử không bao giờ "Xóa Cứng" mất biên lai, ta chỉ Xóa
 		// Mềm (CANCELED)
-		order.setStatus("CANCELED");
+		order.setStatus(OrderStatus.CANCELED);
 		orderRepository.save(order);
 		return mapToDTO(order);
 	}
@@ -131,7 +132,7 @@ public class OrderServiceImpl implements OrderService {
 		order.setShippingFee(30000L); // Fix cứng phí ship là 30k để chống Cheat
 		order.setReceiverName(request.getReceiverName());
 		order.setPhone(request.getPhone());
-		order.setStatus("PENDING"); // Đơn hàng mới nằm ở trạng thái Chờ Xử Lý
+		order.setStatus(OrderStatus.PENDING); // Đơn hàng mới nằm ở trạng thái Chờ Xử Lý
 
 		BigDecimal total = BigDecimal.ZERO;
 
@@ -219,7 +220,8 @@ public class OrderServiceImpl implements OrderService {
 								}
 							}
 						}
-						if (voucher.getBrand() != null && product.getBrand() != null && product.getBrand().getId().equals(voucher.getBrand().getId())) {
+						if (voucher.getBrand() != null && product.getBrand() != null
+								&& product.getBrand().getId().equals(voucher.getBrand().getId())) {
 							isEligible = true;
 						}
 
@@ -235,7 +237,8 @@ public class OrderServiceImpl implements OrderService {
 			// Kiểm tra giá trị tối thiểu của đơn hàng dựa trên các sản phẩm hợp lệ
 			if (voucher.getMinOrderValue() != null && eligibleTotal.compareTo(voucher.getMinOrderValue()) < 0) {
 				throw new RuntimeException(
-						"Tổng tiền các sản phẩm thuộc danh mục/thương hiệu ưu đãi chưa đạt tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
+						"Tổng tiền các sản phẩm thuộc danh mục/thương hiệu ưu đãi chưa đạt tối thiểu "
+								+ voucher.getMinOrderValue() + " để áp dụng mã này!");
 			}
 
 			// Áp dụng giảm giá (tối đa bằng tổng tiền sản phẩm hợp lệ)
@@ -243,7 +246,7 @@ public class OrderServiceImpl implements OrderService {
 			if (discountToApply.compareTo(eligibleTotal) > 0) {
 				discountToApply = eligibleTotal;
 			}
-			
+
 			total = total.subtract(discountToApply);
 			if (total.compareTo(BigDecimal.ZERO) < 0) {
 				total = BigDecimal.ZERO; // Không cho phép tổng tiền âm
@@ -254,8 +257,6 @@ public class OrderServiceImpl implements OrderService {
 			voucherRepository.save(voucher);
 			order.setVoucher(voucher);
 		}
-
-
 
 		// 4. Tính tổng bill dồn kèm giá Ship (Mặc định 30k)
 		total = total.add(BigDecimal.valueOf(30000));

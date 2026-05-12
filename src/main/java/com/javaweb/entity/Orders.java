@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import com.javaweb.enums.OrderStatus;
 
 @Entity
 @Table(name = "orders")
@@ -41,8 +42,9 @@ public class Orders {
     @Column(name = "phone")
     private String phone;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private OrderStatus status;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "orders")
     private Set<OrderItems> orderItems = new HashSet<>();

@@ -22,4 +22,8 @@ public interface ProductService {
     void deleteProduct(Long id);
 
     List<ProductDTO> searchProductsAi(String query);
+
+    List<ProductDTO> getTopSellingProductsPublic(int limit);
+
+    List<ProductDTO> getPersonalizedRecommendations(String email, int limit);
 }

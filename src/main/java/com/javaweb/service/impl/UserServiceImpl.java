@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.javaweb.exception.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.javaweb.repository.RoleRepository;
+import com.javaweb.enums.UserStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +99,7 @@ public class UserServiceImpl implements UserService {
 
         // Cực kì quan trọng: Băm mật khẩu ra thành chuỗi mã hóa trước khi cho vào DB
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setStatus("ACTIVE");
+        user.setStatus(UserStatus.ACTIVE);
 
         if (request.getRoleName() != null) {
             Role role = roleRepository.findByName(request.getRoleName()).orElseGet(() -> {
@@ -230,7 +231,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // không thể xoá thằng dữ liệu bằng cách deletebyid được
-        user.setStatus("INACTIVE");
+        user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
     }
 

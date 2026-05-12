@@ -3,6 +3,7 @@ package com.javaweb.service.impl;
 import com.javaweb.config.MoMoConfig;
 import com.javaweb.entity.Orders;
 import com.javaweb.entity.Payment;
+import com.javaweb.enums.OrderStatus;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.OrderRepository;
 import com.javaweb.repository.PaymentRepository;
@@ -132,7 +133,7 @@ public class PaymentServiceImpl implements PaymentService {
             Orders order = orderRepository.findById(originalOrderId)
                     .orElseThrow(() -> new ResouceNotFoundException("Order not found: " + originalOrderId));
 
-            order.setStatus("PAID");
+            order.setStatus(OrderStatus.PAID);
             orderRepository.save(order);
 
             Payment payment = new Payment();

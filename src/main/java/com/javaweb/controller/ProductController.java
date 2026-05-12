@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.*;
 
+import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -37,6 +38,20 @@ public class ProductController {
     @GetMapping("/search-ai")
     public ResponseEntity<List<ProductDTO>> searchAi(@RequestParam String query) {
         return ResponseEntity.ok(productService.searchProductsAi(query));
+    }
+
+    @GetMapping("/top-selling")
+    public ResponseEntity<List<ProductDTO>> getTopSellingProducts(
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        return ResponseEntity.ok(productService.getTopSellingProductsPublic(limit));
+    }
+
+    @GetMapping("/recommendations")
+    public ResponseEntity<List<ProductDTO>> getPersonalizedRecommendations(
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        String email = (principal != null) ? principal.getName() : null;
+        return ResponseEntity.ok(productService.getPersonalizedRecommendations(email, limit));
     }
 
     @GetMapping("/{id}")

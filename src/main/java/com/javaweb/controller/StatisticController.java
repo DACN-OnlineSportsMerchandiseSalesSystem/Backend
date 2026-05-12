@@ -44,4 +44,12 @@ public class StatisticController {
         statisticService.triggerManualSync();
         return ResponseEntity.ok("Đã chạy tiến trình gom dữ liệu (Data Warehouse) thành công!");
     }
+
+    // Lấy doanh thu theo từng tháng trong năm (vẽ biểu đồ cột cho Admin Dashboard)
+    @GetMapping("/revenue")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<RevenueDTO>> getMonthlyRevenue(
+            @RequestParam(required = false, defaultValue = "0") int year) {
+        return ResponseEntity.ok(statisticService.getMonthlyRevenue(year));
+    }
 }

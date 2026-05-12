@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import com.javaweb.enums.ReturnStatus;
 
 @Entity
 @Table(name = "return_requests")
@@ -21,8 +22,9 @@ public class ReturnRequest {
     @Column(name = "id")
     private Long id;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private ReturnStatus status;
 
     @Column(name = "refund_amount")
     private BigDecimal refundAmount;

@@ -10,6 +10,8 @@ import com.javaweb.repository.OrderRepository;
 import com.javaweb.repository.ReturnRequestRepository;
 import com.javaweb.repository.UserRepository;
 import com.javaweb.service.ReturnService;
+import com.javaweb.enums.OrderStatus;
+import com.javaweb.enums.ReturnStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -39,14 +41,14 @@ public class ReturnServiceImpl implements ReturnService {
         }
 
         // Chỉ cho phép trả hàng khi đơn hàng ở trạng thái PAID hoặc DELIVERED
-        if (!"PAID".equals(order.getStatus()) && !"DELIVERED".equals(order.getStatus())) {
+        if (order.getStatus() != OrderStatus.PAID && order.getStatus() != OrderStatus.DELIVERED) {
             throw new RuntimeException("Chỉ có thể yêu cầu trả hàng cho đơn hàng đã Thanh Toán hoặc Đã Giao.");
         }
 
         // Kiểm tra xem đơn hàng này đã có yêu cầu trả hàng PENDING chưa
         List<ReturnRequest> existingRequests = returnRequestRepository.findByOrderId(order.getId());
         for (ReturnRequest existing : existingRequests) {
-            if ("PENDING".equals(existing.getStatus())) {
+            if (existing.getStatus() == ReturnStatus.PENDING) {
                 throw new RuntimeException("Đơn hàng này đang có yêu cầu đổi trả chờ xử lý.");
             }
         }
@@ -55,7 +57,7 @@ public class ReturnServiceImpl implements ReturnService {
         returnRequest.setUser(user);
         returnRequest.setOrder(order);
         returnRequest.setReason(requestDTO.getReason());
-        returnRequest.setStatus("PENDING");
+        returnRequest.setStatus(ReturnStatus.PENDING);
 
         BigDecimal totalRefundAmount = BigDecimal.ZERO;
 
@@ -109,18 +111,18 @@ public class ReturnServiceImpl implements ReturnService {
         ReturnRequest request = returnRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResouceNotFoundException("Return Request not found"));
 
-        if (!"PENDING".equals(request.getStatus())) {
+        if (request.getStatus() != ReturnStatus.PENDING) {
             throw new RuntimeException("Yêu cầu này đã được xử lý trước đó.");
         }
 
         if ("APPROVE".equalsIgnoreCase(action)) {
-            request.setStatus("APPROVED");
+            request.setStatus(ReturnStatus.APPROVED);
             // Cập nhật trạng thái Đơn hàng gốc thành REFUNDED
             Orders order = request.getOrder();
-            order.setStatus("REFUNDED");
+            order.setStatus(OrderStatus.REFUNDED);
             orderRepository.save(order);
         } else if ("REJECT".equalsIgnoreCase(action)) {
-            request.setStatus("REJECTED");
+            request.setStatus(ReturnStatus.REJECTED);
         } else {
             throw new RuntimeException("Hành động không hợp lệ. Sử dụng 'APPROVE' hoặc 'REJECT'.");
         }
