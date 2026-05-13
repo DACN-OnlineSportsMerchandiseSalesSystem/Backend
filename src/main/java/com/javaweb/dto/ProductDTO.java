@@ -16,7 +16,8 @@ public class ProductDTO {
     private String slug;        
     private String status;     
     private Integer discount;
-    private Integer rating;
+    private Double rating;
+    private Integer reviewCount;
 
     private List<Long> categoryIds;
     private List<String> categoryNames;
