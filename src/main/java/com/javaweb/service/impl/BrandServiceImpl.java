@@ -28,7 +28,6 @@ public class BrandServiceImpl implements BrandService {
             dto.setDetail(brand.getDetail());
             dto.setImageUrl(brand.getImageUrl());
             dto.setStatus(brand.getStatus());
-            dto.setDiscount(brand.getDiscount());
             dto.setRating(brand.getRating());
             brandDTOs.add(dto);
         }
@@ -42,7 +41,6 @@ public class BrandServiceImpl implements BrandService {
         brand.setDetail(brandDTO.getDetail());
         brand.setImageUrl(brandDTO.getImageUrl());
         brand.setStatus(brandDTO.getStatus());
-        brand.setDiscount(brandDTO.getDiscount());
         brand.setRating(brandDTO.getRating());
         brand = brandRepository.save(brand);
         brandDTO.setId(brand.getId());
@@ -57,7 +55,6 @@ public class BrandServiceImpl implements BrandService {
         brand.setDetail(brandDTO.getDetail());
         brand.setImageUrl(brandDTO.getImageUrl());
         brand.setStatus(brandDTO.getStatus());
-        brand.setDiscount(brandDTO.getDiscount());
         brand.setRating(brandDTO.getRating());
         brandRepository.save(brand);
         brandDTO.setId(brand.getId());

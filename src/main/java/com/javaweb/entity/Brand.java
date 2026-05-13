@@ -30,9 +30,6 @@ public class Brand {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "discount")
-    private Integer discount;
-
     @Column(name = "rating")
     private Integer rating;
 

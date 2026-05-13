@@ -27,7 +27,6 @@ public class CategoryServiceImpl implements CategoryService {
             dto.setName(category.getName());
             dto.setSlug(category.getSlug());
             dto.setStatus(category.getStatus());
-            dto.setDiscount(category.getDiscount());
             dto.setRating(category.getRating());
             if (category.getParentCategory() != null) {
                 dto.setParentId(category.getParentCategory().getId());
@@ -44,7 +43,6 @@ public class CategoryServiceImpl implements CategoryService {
         category.setName(categoryDTO.getName());
         category.setSlug(categoryDTO.getSlug());
         category.setStatus(categoryDTO.getStatus());
-        category.setDiscount(categoryDTO.getDiscount());
         category.setRating(categoryDTO.getRating());
         
         if (categoryDTO.getParentId() != null) {
@@ -65,7 +63,6 @@ public class CategoryServiceImpl implements CategoryService {
         category.setName(categoryDTO.getName());
         category.setSlug(categoryDTO.getSlug());
         category.setStatus(categoryDTO.getStatus());
-        category.setDiscount(categoryDTO.getDiscount());
         category.setRating(categoryDTO.getRating());
         
         if (categoryDTO.getParentId() != null) {

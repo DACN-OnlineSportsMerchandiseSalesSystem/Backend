@@ -27,9 +27,6 @@ public class Category {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "discount")
-    private Integer discount;
-
     @Column(name = "rating")
     private Integer rating;
 
@@ -42,5 +39,8 @@ public class Category {
 
     @ManyToMany(mappedBy = "categories")
     private Set<Product> products = new HashSet<>();
+
+    @ManyToMany(mappedBy = "interestedCategories")
+    private Set<User> interestedUsers = new HashSet<>();
 
 }
