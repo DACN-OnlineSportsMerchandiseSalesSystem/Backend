@@ -10,7 +10,9 @@ import java.math.BigDecimal;
 public class CartItemDTO {
     private Long id;
     private Long productVariantId;
-    // Dữ liệu rút gọn từ ProductVariant để hiện thị giao diện
+    private Long productId;      // Cần ID sản phẩm gốc để chuyển trang
+    private String productName;  // Tên sản phẩm
+    private String variantInfo;  // Thông tin Size/Màu
     private String imageUrl;
     private BigDecimal unitPrice;
     private Integer quantity;

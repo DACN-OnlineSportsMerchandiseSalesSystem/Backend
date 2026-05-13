@@ -197,6 +197,19 @@ public class ProductServiceImpl implements ProductService {
             }
         }
 
+        // Mapping Reviews Info
+        if (product.getReviews() != null && !product.getReviews().isEmpty()) {
+            dto.setReviewCount(product.getReviews().size());
+            double avgRating = product.getReviews().stream()
+                    .mapToInt(r -> r.getRating() != null ? r.getRating() : 0)
+                    .average()
+                    .orElse(0.0);
+            dto.setRating(avgRating);
+        } else {
+            dto.setReviewCount(0);
+            dto.setRating(0.0);
+        }
+
         return dto;
     }
 

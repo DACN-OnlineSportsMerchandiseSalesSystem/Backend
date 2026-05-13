@@ -44,6 +44,9 @@ public class Orders {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "payment_method")
+    private String paymentMethod;
+
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "orders")
     private Set<OrderItems> orderItems = new HashSet<>();
 

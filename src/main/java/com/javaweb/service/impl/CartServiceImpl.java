@@ -111,12 +111,31 @@ public class CartServiceImpl implements CartService {
                 itemDTO.setQuantity(item.getQuantity());
                 
                 if (item.getProductVariant() != null) {
-                    itemDTO.setProductVariantId(item.getProductVariant().getId());
-                    itemDTO.setUnitPrice(item.getProductVariant().getPrice());
-                    itemDTO.setImageUrl("https://placehold.co/150"); // Mock Image URL
+                    ProductVariant variant = item.getProductVariant();
+                    itemDTO.setProductVariantId(variant.getId());
+                    itemDTO.setUnitPrice(variant.getPrice());
                     
-                    if (item.getProductVariant().getPrice() != null && item.getQuantity() != null) {
-                        BigDecimal itemTotal = item.getProductVariant().getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                    if (variant.getProducts() != null) {
+                        itemDTO.setProductId(variant.getProducts().getId());
+                        itemDTO.setProductName(variant.getProducts().getName());
+                        
+                        // Lấy ảnh thumbnail của sản phẩm
+                        if (variant.getProducts().getProductImages() != null) {
+                            String thumb = variant.getProducts().getProductImages().stream()
+                                    .filter(img -> img.getIsThumbnail() != null && img.getIsThumbnail())
+                                    .map(img -> img.getImageUrl())
+                                    .findFirst()
+                                    .orElse(variant.getProducts().getProductImages().stream()
+                                            .map(img -> img.getImageUrl())
+                                            .findFirst().orElse("https://placehold.co/150"));
+                            itemDTO.setImageUrl(thumb);
+                        }
+                    }
+                    
+                    itemDTO.setVariantInfo(variant.getSize() + " / " + variant.getColor());
+
+                    if (variant.getPrice() != null && item.getQuantity() != null) {
+                        BigDecimal itemTotal = variant.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
                         total = total.add(itemTotal);
                     }
                 }

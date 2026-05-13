@@ -22,4 +22,6 @@ public class ProductDTO {
     private List<ProductImageDTO> images;
     private List<ProductVariantDTO> variants;
     private BigDecimal price; // Giá hiển thị đại diện
+    private Double rating;      // Điểm đánh giá trung bình
+    private Integer reviewCount; // Số lượng đánh giá
 }

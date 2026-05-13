@@ -19,4 +19,5 @@ public class OrderRequestDTO {
     
     // Thêm mã giảm giá
     private String voucherCode;
+    private String paymentMethod;
 }

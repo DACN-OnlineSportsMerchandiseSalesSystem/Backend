@@ -80,6 +80,14 @@ public class ReviewServiceImpl implements ReviewService {
         return mapToDTO(reviewRepository.save(review));
     }
 
+    @Override
+    public List<ReviewDTO> getAllReviews() {
+        return reviewRepository.findAll()
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     private ReviewDTO mapToDTO(Review review) {
         ReviewDTO dto = new ReviewDTO();
         dto.setId(review.getId());

@@ -39,6 +39,9 @@ public class Voucher {
     @Column(name = "expiry_date")
     private Date expiryDate;
 
+    @Column(name = "is_active")
+    private Boolean isActive = true;
+
     @Column(name = "created_at")
     @CreationTimestamp
     private Date createdAt;

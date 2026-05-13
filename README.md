@@ -199,6 +199,7 @@ CREATE DATABASE online_sports_store;
 
 ```bash
 mvn spring-boot:run
+mvn clean spring-boot:run
 ```
 
 Ứng dụng sẽ chạy tại `http://localhost:8080`

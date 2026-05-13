@@ -44,6 +44,13 @@ public class ReviewController {
         return ResponseEntity.noContent().build();
     }
 
+    // HTTP GET: Admin lấy tất cả đánh giá
+    @GetMapping("/reviews")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<ReviewDTO>> getAllReviews() {
+        return ResponseEntity.ok(reviewService.getAllReviews());
+    }
+
     // HTTP PUT: Admin phản hồi đánh giá của khách hàng
     @PutMapping("/reviews/{reviewId}/reply")
     @PreAuthorize("hasAuthority('ADMIN')")

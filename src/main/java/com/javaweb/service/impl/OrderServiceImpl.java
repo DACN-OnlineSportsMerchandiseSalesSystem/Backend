@@ -60,8 +60,8 @@ public class OrderServiceImpl implements OrderService {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
 		// Trong Thương Mại Điện Tử không bao giờ "Xóa Cứng" mất biên lai, ta chỉ Xóa
-		// Mềm (CANCELED)
-		order.setStatus("CANCELED");
+		// Mềm (CANCELLED)
+		order.setStatus("CANCELLED");
 		orderRepository.save(order);
 		return mapToDTO(order);
 	}
@@ -113,6 +113,7 @@ public class OrderServiceImpl implements OrderService {
 		order.setShippingFee(30000L); // Fix cứng phí ship là 30k để chống Cheat
 		order.setReceiverName(request.getReceiverName());
 		order.setPhone(request.getPhone());
+		order.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "COD");
 		order.setStatus("PENDING"); // Đơn hàng mới nằm ở trạng thái Chờ Xử Lý
 
 		BigDecimal total = BigDecimal.ZERO;
@@ -226,6 +227,9 @@ public class OrderServiceImpl implements OrderService {
 		dto.setTotalPrice(order.getTotalPrice());
 		dto.setShippingFee(order.getShippingFee());
 		dto.setStatus(order.getStatus());
+		dto.setReceiverName(order.getReceiverName());
+		dto.setPhone(order.getPhone());
+		dto.setPaymentMethod(order.getPaymentMethod());
 
 		// Nặn vỏ bọc AddressDTO từ Hóa đơn (Snapshot)
 		if (order.getBillingStreet() != null || order.getBillingCity() != null) {
