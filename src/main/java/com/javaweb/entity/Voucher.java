@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import com.javaweb.enums.RankType;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -45,6 +46,10 @@ public class Voucher {
     @Column(name = "created_at")
     @CreationTimestamp
     private Date createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rank")
+    private RankType rank;
 
     // 1 Voucher áp dụng cho nhiều Đơn Hàng
     @OneToMany(mappedBy = "voucher")

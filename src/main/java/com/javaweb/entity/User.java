@@ -9,7 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import com.javaweb.enums.UserStatus;
+import com.javaweb.enums.*;
 
 @Entity
 @Table(name = "users")
@@ -44,11 +44,19 @@ public class User {
     @Column(name = "level")
     private Long level; // Dùng để tích điểm thành viên
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    private Gender gender; 
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rank")
+    private RankType rank; 
+
     @Column(name = "last_login")
     @UpdateTimestamp
     private Date lastLogin;
 
-    @Column(name = "creaed_at")
+    @Column(name = "created_at")
     @CreationTimestamp
     private Date createdAt;
 
@@ -74,4 +82,13 @@ public class User {
     // 5. Đánh giá (1 User viết nhiều Review)
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
     private Set<Review> reviews = new HashSet<>();
+
+    // 6. Danh mục quan tâm (Many-to-Many)
+    @ManyToMany
+    @JoinTable(
+        name = "user_category_interest",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> interestedCategories = new HashSet<>();
 }

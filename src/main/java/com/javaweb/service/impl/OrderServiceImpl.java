@@ -11,6 +11,7 @@ import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.*;
 import com.javaweb.entity.User;
 import com.javaweb.service.*;
+import com.javaweb.enums.RankType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -57,19 +58,27 @@ public class OrderServiceImpl implements OrderService {
 	public OrderDTO updateOrderStatus(Long id, OrderStatus status) {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
-
-		// Cộng điểm khi đơn hàng được đánh dấu là COMPLETED
+		// Logic Thăng Hạng Tự Động: Khi đơn hàng hoàn thành (COMPLETED)
 		if (status == OrderStatus.COMPLETED && order.getStatus() != OrderStatus.COMPLETED) {
 			User user = order.getUser();
 			if (user != null) {
 				Long currentPoints = user.getLevel() != null ? user.getLevel() : 0L;
-				// 100.000 VNĐ = 1 điểm
-				long addedPoints = order.getTotalPrice().divideToIntegralValue(BigDecimal.valueOf(100000)).longValue();
-				user.setLevel(currentPoints + addedPoints);
+				// 1.000 VNĐ = 1 điểm (level)
+				long addedPoints = order.getTotalPrice().divideToIntegralValue(BigDecimal.valueOf(1000)).longValue();
+				long totalPoints = currentPoints + addedPoints;
+				user.setLevel(totalPoints);
+
+				// Cập nhật Hạng (Rank) dựa trên tổng điểm (level)
+				// 1tr=1k, 5tr=5k, 20tr=20k, 50tr=50k
+				if (totalPoints >= 50000) user.setRank(RankType.DIAMOND);
+				else if (totalPoints >= 20000) user.setRank(RankType.GOLD);
+				else if (totalPoints >= 5000) user.setRank(RankType.SILVER);
+				else if (totalPoints >= 1000) user.setRank(RankType.BRONZE);
+				else user.setRank(RankType.NEW);
+
 				userRepository.save(user);
 			}
 		}
-
 		order.setStatus(status);
 		return mapToDTO(orderRepository.save(order));
 	}
