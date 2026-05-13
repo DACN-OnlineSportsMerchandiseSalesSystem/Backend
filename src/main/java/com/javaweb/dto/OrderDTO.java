@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import com.javaweb.enums.OrderStatus;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -16,10 +17,7 @@ public class OrderDTO {
     private String note; 	
     private BigDecimal totalPrice;  
     private Long shippingFee;
-    private String status;
-    private String receiverName;
-    private String phone;
-    private String paymentMethod;
+    private OrderStatus status;
     private Set<OrderItemDTO> orderItems = new HashSet<>();
     private AddressDTO billingAddress;
     private VoucherDTO voucher;

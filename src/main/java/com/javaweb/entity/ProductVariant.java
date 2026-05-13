@@ -31,6 +31,12 @@ public class ProductVariant {
 	@Column(name = "price")
 	private BigDecimal price;
 	
+	@Column(name = "discount")
+	private Integer discount;
+	
+	@Column(name = "original_price")
+	private BigDecimal originalPrice;
+	
 	@Column(name = "color")
 	private String color;
 	

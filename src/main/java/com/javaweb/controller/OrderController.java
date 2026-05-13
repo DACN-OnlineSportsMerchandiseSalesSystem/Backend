@@ -12,7 +12,8 @@ import java.util.Date;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
-import  org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.format.annotation.DateTimeFormat;
+import com.javaweb.enums.OrderStatus;
 
 @RestController
 @RequestMapping("/api/orders") // Cổng API cho Frontend gọi
@@ -28,10 +29,11 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getMyOrders(email));
     }
 
-    // HTTP GET: Tuyến đường Dành riêng cho ADMIN để xem toàn bộ Đơn hàng trên hệ thống
+    // HTTP GET: Tuyến đường Dành riêng cho ADMIN để xem toàn bộ Đơn hàng trên hệ
+    // thống
     @GetMapping("/all")
     public ResponseEntity<List<OrderDTO>> getAllOrdersForAdmin(
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date toDate,
             @RequestParam(required = false) String keyword) {

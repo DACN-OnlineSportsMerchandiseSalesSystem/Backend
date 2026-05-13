@@ -12,5 +12,7 @@ public class ProductVariantDTO {
     private String size;
     private String color;
     private BigDecimal price;
+    private BigDecimal originalPrice;
+    private Integer discount;
     private Integer stockQuantity;
 }

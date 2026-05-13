@@ -15,13 +15,15 @@ public class ProductDTO {
     private String description;
     private String slug;        
     private String status;     
+    private Integer discount;
+    private Integer rating;
 
-    private String categoryName;
+    private List<Long> categoryIds;
+    private List<String> categoryNames;
     private String brandName;
 
     private List<ProductImageDTO> images;
     private List<ProductVariantDTO> variants;
     private BigDecimal price; // Giá hiển thị đại diện
-    private Double rating;      // Điểm đánh giá trung bình
-    private Integer reviewCount; // Số lượng đánh giá
+    private BigDecimal originalPrice;
 }

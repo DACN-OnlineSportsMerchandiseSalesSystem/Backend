@@ -4,7 +4,9 @@ import com.javaweb.dto.*;
 import com.javaweb.entity.Address;
 import com.javaweb.entity.OrderItems;
 import com.javaweb.entity.Orders;
+import com.javaweb.entity.Product;
 import com.javaweb.entity.ProductVariant;
+import com.javaweb.entity.Voucher;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.*;
 import com.javaweb.entity.User;
@@ -13,10 +15,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import com.javaweb.entity.Category;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Calendar;
+import com.javaweb.enums.OrderStatus;
 
 @Service
 @RequiredArgsConstructor
@@ -30,14 +36,14 @@ public class OrderServiceImpl implements OrderService {
 	private final EmailService emailService;
 
 	@Override
-	public List<OrderDTO> getAllOrder(String status, java.util.Date fromDate, java.util.Date toDate, String keyword) {
+	public List<OrderDTO> getAllOrder(OrderStatus status, Date fromDate, Date toDate, String keyword) {
 		// Điều chỉnh toDate đến cuối ngày để bao gồm cả ngày hôm đó
 		if (toDate != null) {
-			java.util.Calendar cal = java.util.Calendar.getInstance();
+			Calendar cal = Calendar.getInstance();
 			cal.setTime(toDate);
-			cal.set(java.util.Calendar.HOUR_OF_DAY, 23);
-			cal.set(java.util.Calendar.MINUTE, 59);
-			cal.set(java.util.Calendar.SECOND, 59);
+			cal.set(Calendar.HOUR_OF_DAY, 23);
+			cal.set(Calendar.MINUTE, 59);
+			cal.set(Calendar.SECOND, 59);
 			toDate = cal.getTime();
 		}
 
@@ -48,9 +54,22 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
-	public OrderDTO updateOrderStatus(Long id, String status) {
+	public OrderDTO updateOrderStatus(Long id, OrderStatus status) {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
+
+		// Cộng điểm khi đơn hàng được đánh dấu là COMPLETED
+		if (status == OrderStatus.COMPLETED && order.getStatus() != OrderStatus.COMPLETED) {
+			User user = order.getUser();
+			if (user != null) {
+				Long currentPoints = user.getLevel() != null ? user.getLevel() : 0L;
+				// 100.000 VNĐ = 1 điểm
+				long addedPoints = order.getTotalPrice().divideToIntegralValue(BigDecimal.valueOf(100000)).longValue();
+				user.setLevel(currentPoints + addedPoints);
+				userRepository.save(user);
+			}
+		}
+
 		order.setStatus(status);
 		return mapToDTO(orderRepository.save(order));
 	}
@@ -60,8 +79,8 @@ public class OrderServiceImpl implements OrderService {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
 		// Trong Thương Mại Điện Tử không bao giờ "Xóa Cứng" mất biên lai, ta chỉ Xóa
-		// Mềm (CANCELLED)
-		order.setStatus("CANCELLED");
+		// Mềm (CANCELED)
+		order.setStatus(OrderStatus.CANCELED);
 		orderRepository.save(order);
 		return mapToDTO(order);
 	}
@@ -113,8 +132,7 @@ public class OrderServiceImpl implements OrderService {
 		order.setShippingFee(30000L); // Fix cứng phí ship là 30k để chống Cheat
 		order.setReceiverName(request.getReceiverName());
 		order.setPhone(request.getPhone());
-		order.setPaymentMethod(request.getPaymentMethod() != null ? request.getPaymentMethod() : "COD");
-		order.setStatus("PENDING"); // Đơn hàng mới nằm ở trạng thái Chờ Xử Lý
+		order.setStatus(OrderStatus.PENDING); // Đơn hàng mới nằm ở trạng thái Chờ Xử Lý
 
 		BigDecimal total = BigDecimal.ZERO;
 
@@ -169,12 +187,12 @@ public class OrderServiceImpl implements OrderService {
 
 		// 3. Xử lý Mã Giảm Giá (Voucher)
 		if (request.getVoucherCode() != null && !request.getVoucherCode().isEmpty()) {
-			com.javaweb.entity.Voucher voucher = voucherRepository.findByCode(request.getVoucherCode())
+			Voucher voucher = voucherRepository.findByCode(request.getVoucherCode())
 					.orElseThrow(() -> new ResouceNotFoundException(
 							"Mã giảm giá không hợp lệ: " + request.getVoucherCode()));
 
 			// Kiểm tra hạn sử dụng
-			if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new java.util.Date())) {
+			if (voucher.getExpiryDate() != null && voucher.getExpiryDate().before(new Date())) {
 				throw new RuntimeException("Mã giảm giá đã hết hạn!");
 			}
 
@@ -183,14 +201,53 @@ public class OrderServiceImpl implements OrderService {
 				throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
 			}
 
-			// Kiểm tra giá trị tối thiểu của đơn hàng
-			if (voucher.getMinOrderValue() != null && total.compareTo(voucher.getMinOrderValue()) < 0) {
-				throw new RuntimeException(
-						"Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + " để áp dụng mã này!");
+			// Tính tổng tiền các sản phẩm hợp lệ để áp dụng voucher
+			BigDecimal eligibleTotal = BigDecimal.ZERO;
+			if (voucher.getCategory() == null && voucher.getBrand() == null) {
+				// Áp dụng cho toàn bộ đơn hàng
+				eligibleTotal = total;
+			} else {
+				for (OrderItems item : order.getOrderItems()) {
+					if (item.getProductVariants() != null && item.getProductVariants().getProducts() != null) {
+						Product product = item.getProductVariants().getProducts();
+						boolean isEligible = false;
+
+						if (voucher.getCategory() != null && product.getCategories() != null) {
+							for (Category cat : product.getCategories()) {
+								if (cat.getId().equals(voucher.getCategory().getId())) {
+									isEligible = true;
+									break;
+								}
+							}
+						}
+						if (voucher.getBrand() != null && product.getBrand() != null
+								&& product.getBrand().getId().equals(voucher.getBrand().getId())) {
+							isEligible = true;
+						}
+
+						if (isEligible) {
+							BigDecimal actualPrice = item.getPriceAtPurchase().subtract(item.getDiscountAmount());
+							BigDecimal itemTotal = actualPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+							eligibleTotal = eligibleTotal.add(itemTotal);
+						}
+					}
+				}
 			}
 
-			// Áp dụng giảm giá
-			total = total.subtract(voucher.getDiscountAmount());
+			// Kiểm tra giá trị tối thiểu của đơn hàng dựa trên các sản phẩm hợp lệ
+			if (voucher.getMinOrderValue() != null && eligibleTotal.compareTo(voucher.getMinOrderValue()) < 0) {
+				throw new RuntimeException(
+						"Tổng tiền các sản phẩm thuộc danh mục/thương hiệu ưu đãi chưa đạt tối thiểu "
+								+ voucher.getMinOrderValue() + " để áp dụng mã này!");
+			}
+
+			// Áp dụng giảm giá (tối đa bằng tổng tiền sản phẩm hợp lệ)
+			BigDecimal discountToApply = voucher.getDiscountAmount();
+			if (discountToApply.compareTo(eligibleTotal) > 0) {
+				discountToApply = eligibleTotal;
+			}
+
+			total = total.subtract(discountToApply);
 			if (total.compareTo(BigDecimal.ZERO) < 0) {
 				total = BigDecimal.ZERO; // Không cho phép tổng tiền âm
 			}

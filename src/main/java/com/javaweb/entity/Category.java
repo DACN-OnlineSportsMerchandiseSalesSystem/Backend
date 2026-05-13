@@ -18,12 +18,29 @@ public class Category {
     @Column(name="id")
     private Long id;
     
-    @Column(name = "name")
+    @Column(name = "name", unique = true, nullable = false)
     private String name;
 
-	// 1 Thương hiệu có nhiều Sản phẩm gốc (Product)
-	@OneToMany(cascade = CascadeType.ALL, mappedBy = "category") // Chữ 'b' viết thường
-	private Set<Product> products = new HashSet<>(); // Đổi thành Product và có 's'
-   
+    @Column(name = "slug")
+    private String slug;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "discount")
+    private Integer discount;
+
+    @Column(name = "rating")
+    private Integer rating;
+
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private Category parentCategory;
+
+    @OneToMany(mappedBy = "parentCategory", cascade = CascadeType.ALL)
+    private Set<Category> subCategories = new HashSet<>();
+
+    @ManyToMany(mappedBy = "categories")
+    private Set<Product> products = new HashSet<>();
 
 }

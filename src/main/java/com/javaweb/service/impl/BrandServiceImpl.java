@@ -26,8 +26,10 @@ public class BrandServiceImpl implements BrandService {
             dto.setId(brand.getId());
             dto.setName(brand.getName());
             dto.setDetail(brand.getDetail());
-            dto.setImage(brand.getImage());
-            dto.setUrl(brand.getUrl());
+            dto.setImageUrl(brand.getImageUrl());
+            dto.setStatus(brand.getStatus());
+            dto.setDiscount(brand.getDiscount());
+            dto.setRating(brand.getRating());
             brandDTOs.add(dto);
         }
         return brandDTOs;
@@ -38,8 +40,10 @@ public class BrandServiceImpl implements BrandService {
         Brand brand = new Brand();
         brand.setName(brandDTO.getName());
         brand.setDetail(brandDTO.getDetail());
-        brand.setImage(brandDTO.getImage());
-        brand.setUrl(brandDTO.getUrl());
+        brand.setImageUrl(brandDTO.getImageUrl());
+        brand.setStatus(brandDTO.getStatus());
+        brand.setDiscount(brandDTO.getDiscount());
+        brand.setRating(brandDTO.getRating());
         brand = brandRepository.save(brand);
         brandDTO.setId(brand.getId());
         return brandDTO;
@@ -51,8 +55,10 @@ public class BrandServiceImpl implements BrandService {
                 .orElseThrow(() -> new RuntimeException("Brand not found with id: " + id));
         brand.setName(brandDTO.getName());
         brand.setDetail(brandDTO.getDetail());
-        brand.setImage(brandDTO.getImage());
-        brand.setUrl(brandDTO.getUrl());
+        brand.setImageUrl(brandDTO.getImageUrl());
+        brand.setStatus(brandDTO.getStatus());
+        brand.setDiscount(brandDTO.getDiscount());
+        brand.setRating(brandDTO.getRating());
         brandRepository.save(brand);
         brandDTO.setId(brand.getId());
         return brandDTO;

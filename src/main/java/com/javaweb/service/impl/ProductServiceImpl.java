@@ -10,6 +10,11 @@ import com.javaweb.entity.Brand;
 import com.javaweb.repository.ProductRepository;
 import com.javaweb.repository.CategoryRepository;
 import com.javaweb.repository.BrandRepository;
+import com.javaweb.repository.OrderRepository;
+import com.javaweb.repository.UserRepository;
+import com.javaweb.entity.Orders;
+import com.javaweb.entity.OrderItems;
+import com.javaweb.entity.User;
 import com.javaweb.service.ProductService;
 import com.javaweb.exception.ResouceNotFoundException;
 import dev.langchain4j.data.embedding.Embedding;
@@ -20,10 +25,17 @@ import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import com.javaweb.enums.OrderStatus;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +44,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final BrandRepository brandRepository;
+    private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
 
@@ -55,11 +69,11 @@ public class ProductServiceImpl implements ProductService {
 
         // 4. Truy vấn MySQL để lấy thông tin chi tiết (giá, ảnh, tên...)
         List<Product> products = productRepository.findAllById(ids);
-        
+
         // Duy trì thứ tự sắp xếp theo độ liên quan mà AI đã trả về
         Map<Long, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, p -> p));
-        
+
         return ids.stream()
                 .filter(productMap::containsKey)
                 .map(id -> mapToDTO(productMap.get(id)))
@@ -76,7 +90,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDTO> getProductsByCategory(Long categoryId) {
-        return productRepository.findByCategoryId(categoryId)
+        return productRepository.findByCategories_Id(categoryId)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -92,7 +106,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDTO> getProductsByCategoryAndBrand(Long categoryId, Long brandId) {
-        return productRepository.findByCategoryIdAndBrandId(categoryId, brandId)
+        return productRepository.findByCategories_IdAndBrandId(categoryId, brandId)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
@@ -134,11 +148,11 @@ public class ProductServiceImpl implements ProductService {
         product.setSlug(request.getSlug());
         product.setStatus(request.getStatus() != null ? request.getStatus() : "ACTIVE"); // Mặc định là ACTIVE
 
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new ResouceNotFoundException(
-                            "Category not found with id: " + request.getCategoryId()));
-            product.setCategory(category);
+        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
+            Set<Category> categories = new HashSet<>(categoryRepository.findAllById(request.getCategoryIds()));
+            product.setCategories(categories);
+        } else {
+            product.setCategories(new HashSet<>());
         }
 
         if (request.getBrandId() != null) {
@@ -146,7 +160,10 @@ public class ProductServiceImpl implements ProductService {
                     .orElseThrow(
                             () -> new ResouceNotFoundException("Brand not found with id: " + request.getBrandId()));
             product.setBrand(brand);
+        } else {
+            product.setBrand(null);
         }
+
         return product;
     }
 
@@ -160,8 +177,9 @@ public class ProductServiceImpl implements ProductService {
         dto.setSlug(product.getSlug());
         dto.setStatus(product.getStatus());
 
-        if (product.getCategory() != null) {
-            dto.setCategoryName(product.getCategory().getName());
+        if (product.getCategories() != null && !product.getCategories().isEmpty()) {
+            dto.setCategoryIds(product.getCategories().stream().map(Category::getId).collect(Collectors.toList()));
+            dto.setCategoryNames(product.getCategories().stream().map(Category::getName).collect(Collectors.toList()));
         }
         if (product.getBrand() != null) {
             dto.setBrandName(product.getBrand().getName());
@@ -186,14 +204,42 @@ public class ProductServiceImpl implements ProductService {
                 vDto.setSkuCode(v.getSkuCode());
                 vDto.setSize(v.getSize());
                 vDto.setColor(v.getColor());
-                vDto.setPrice(v.getPrice());
+
+                // Logic Khuyến Mãi Đè Chồng (Dynamic Calculation)
+                int effectiveDiscount = 0;
+                if (v.getDiscount() != null)
+                    effectiveDiscount = Math.max(effectiveDiscount, v.getDiscount());
+                if (product.getCategories() != null) {
+                    for (Category category : product.getCategories()) {
+                        if (category.getDiscount() != null) {
+                            effectiveDiscount = Math.max(effectiveDiscount, category.getDiscount());
+                        }
+                    }
+                }
+                if (product.getBrand() != null && product.getBrand().getDiscount() != null)
+                    effectiveDiscount = Math.max(effectiveDiscount, product.getBrand().getDiscount());
+
+                vDto.setDiscount(effectiveDiscount);
+                vDto.setOriginalPrice(v.getOriginalPrice());
+
+                if (v.getOriginalPrice() != null) {
+                    BigDecimal calculatedPrice = v.getOriginalPrice()
+                            .multiply(BigDecimal.valueOf(100 - effectiveDiscount))
+                            .divide(BigDecimal.valueOf(100));
+                    vDto.setPrice(calculatedPrice);
+                } else {
+                    vDto.setPrice(v.getPrice());
+                }
+
                 vDto.setStockQuantity(v.getStockQuantity());
                 return vDto;
             }).collect(Collectors.toList()));
-            
+
             // Lấy giá của biến thể đầu tiên làm giá đại diện
             if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
                 dto.setPrice(dto.getVariants().get(0).getPrice());
+                dto.setOriginalPrice(dto.getVariants().get(0).getOriginalPrice());
+                dto.setDiscount(dto.getVariants().get(0).getDiscount());
             }
         }
 
@@ -211,6 +257,90 @@ public class ProductServiceImpl implements ProductService {
         }
 
         return dto;
+    }
+
+    @Override
+    public List<ProductDTO> getTopSellingProductsPublic(int limit) {
+        List<Long> productIds = productRepository.findTopSellingProductIds(PageRequest.of(0, limit));
+        if (productIds.isEmpty()) return new ArrayList<>();
+
+        List<Product> topProducts = productRepository.findAllById(productIds);
+
+        Map<Long, Product> productMap = topProducts.stream().collect(Collectors.toMap(Product::getId, p -> p));
+        List<Product> orderedProducts = new ArrayList<>();
+        for (Long id : productIds) {
+            if (productMap.containsKey(id)) {
+                orderedProducts.add(productMap.get(id));
+            }
+        }
+
+        return orderedProducts.stream().map(this::mapToDTO).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProductDTO> getPersonalizedRecommendations(String email, int limit) {
+        if (email == null || email.isEmpty()) {
+            return getTopSellingProductsPublic(limit);
+        }
+
+        Optional<User> userOpt = userRepository.findByEmail(email);
+        if (userOpt.isEmpty()) {
+            return getTopSellingProductsPublic(limit);
+        }
+
+        List<Orders> orders = orderRepository.findByUserId(userOpt.get().getId());
+        if (orders.isEmpty()) {
+            return getTopSellingProductsPublic(limit);
+        }
+
+        Map<Long, Long> categoryCount = new HashMap<>();
+        Map<Long, Long> brandCount = new HashMap<>();
+        Set<Long> boughtProductIds = new HashSet<>();
+
+        for (Orders order : orders) {
+            if (order.getStatus() == OrderStatus.COMPLETED || order.getStatus() == OrderStatus.PAID || order.getStatus() == OrderStatus.DELIVERED) {
+                for (OrderItems item : order.getOrderItems()) {
+                    if (item.getProductVariants() != null && item.getProductVariants().getProducts() != null) {
+                        Product p = item.getProductVariants().getProducts();
+                        boughtProductIds.add(p.getId());
+
+                        if (p.getBrand() != null) {
+                            brandCount.put(p.getBrand().getId(), brandCount.getOrDefault(p.getBrand().getId(), 0L) + 1);
+                        }
+                        if (p.getCategories() != null) {
+                            for (Category cat : p.getCategories()) {
+                                categoryCount.put(cat.getId(), categoryCount.getOrDefault(cat.getId(), 0L) + 1);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Long topCategoryId = categoryCount.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+        Long topBrandId = brandCount.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+
+        List<Product> recommendedProducts = new ArrayList<>();
+
+        if (topCategoryId != null) {
+            recommendedProducts.addAll(productRepository.findByCategories_Id(topCategoryId));
+        }
+        if (topBrandId != null) {
+            recommendedProducts.addAll(productRepository.findByBrandId(topBrandId));
+        }
+
+        List<ProductDTO> result = recommendedProducts.stream()
+                .filter(p -> !boughtProductIds.contains(p.getId()))
+                .distinct()
+                .limit(limit)
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+
+        if (result.isEmpty()) {
+            return getTopSellingProductsPublic(limit);
+        }
+
+        return result;
     }
 
 }

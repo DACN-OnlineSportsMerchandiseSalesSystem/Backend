@@ -12,6 +12,7 @@ import org.springframework.data.domain.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -106,5 +107,36 @@ public class StatisticServiceImpl implements StatisticService {
 
         Pageable topTen = PageRequest.of(0, limit);
         return productRepository.getTopSellingProducts(start, end, topTen);
+    }
+
+    @Override
+    public List<RevenueDTO> getMonthlyRevenue(int year) {
+        int targetYear = (year > 0) ? year : LocalDate.now().getYear();
+
+        List<Object[]> raw = orderRepository.getMonthlyRevenue(targetYear);
+
+        // Tạo mảng 12 tháng mặc định = 0 (các tháng chưa có đơn hàng)
+        BigDecimal[] revenues = new BigDecimal[12];
+        int[] counts = new int[12];
+        for (int i = 0; i < 12; i++) {
+            revenues[i] = BigDecimal.ZERO;
+            counts[i] = 0;
+        }
+
+        // Đổ dữ liệu từ DB vào mảng
+        for (Object[] row : raw) {
+            int month = ((Number) row[0]).intValue(); // MONTH() trả về 1-12
+            BigDecimal revenue = (BigDecimal) row[1];
+            long count = ((Number) row[2]).longValue();
+            revenues[month - 1] = revenue != null ? revenue : BigDecimal.ZERO;
+            counts[month - 1] = (int) count;
+        }
+
+        // Build kết quả đủ 12 tháng
+        List<RevenueDTO> result = new ArrayList<>();
+        for (int i = 0; i < 12; i++) {
+            result.add(new RevenueDTO("Tháng " + (i + 1), revenues[i], counts[i]));
+        }
+        return result;
     }
 }

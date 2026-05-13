@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
+import com.javaweb.enums.OrderStatus;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Orders, Long> {
@@ -24,13 +25,22 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
            "LOWER(o.user.email) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(o.user.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "LOWER(o.user.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    List<Orders> findWithFilters(@Param("status") String status, 
+    List<Orders> findWithFilters(@Param("status") OrderStatus status, 
                                  @Param("start") Date start, 
                                  @Param("end") Date end, 
                                  @Param("keyword") String keyword);
-    @Query("SELECT SUM(o.totalPrice) FROM Orders o WHERE o.status = 'PAID' AND o.createAt >= :start AND o.createAt < :end")
+    @Query("SELECT SUM(o.totalPrice) FROM Orders o WHERE o.status = com.javaweb.enums.OrderStatus.PAID AND o.createAt >= :start AND o.createAt < :end")
     BigDecimal sumRevenueByDateRange(@Param("start") Date start, @Param("end") Date end);
 
     @Query("SELECT COUNT(o) FROM Orders o WHERE o.createAt >= :start AND o.createAt < :end")
     Integer countOrdersByDateRange(@Param("start") Date start, @Param("end") Date end);
+
+    // Gom doanh thu theo từng tháng trong 1 năm (dùng cho biểu đồ doanh thu)
+    @Query("SELECT FUNCTION('MONTH', o.createAt), SUM(o.totalPrice), COUNT(o) " +
+           "FROM Orders o " +
+           "WHERE o.status IN (com.javaweb.enums.OrderStatus.PAID, com.javaweb.enums.OrderStatus.COMPLETED) " +
+           "AND FUNCTION('YEAR', o.createAt) = :year " +
+           "GROUP BY FUNCTION('MONTH', o.createAt) " +
+           "ORDER BY FUNCTION('MONTH', o.createAt) ASC")
+    List<Object[]> getMonthlyRevenue(@Param("year") int year);
 }

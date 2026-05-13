@@ -42,9 +42,13 @@ public class Product { // Tên Class KHÔNG CÓ 's'
     @JoinColumn(name = "brand_id")
     private Brand brand; // Nên đổi tên class Brands thành Brand
 
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private Category category; // Nên đổi tên class Categories thành Category
+    @ManyToMany
+    @JoinTable(
+        name = "product_categories",
+        joinColumns = @JoinColumn(name = "product_id"),
+        inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
 
     // --- CÁC MỐI QUAN HỆ ONE-TO-MANY (Kéo thằng khác vào) ---
 

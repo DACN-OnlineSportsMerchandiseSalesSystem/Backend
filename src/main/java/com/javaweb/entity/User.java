@@ -9,6 +9,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+import com.javaweb.enums.UserStatus;
 
 @Entity
 @Table(name = "users")
@@ -27,8 +28,9 @@ public class User {
     @Column(name = "email")
     private String email;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status")
-    private String status; // Đã sửa thành String (ACTIVE, BANNED, LOCKED)
+    private UserStatus status;
 
     @Column(name = "first_name")
     private String firstName;

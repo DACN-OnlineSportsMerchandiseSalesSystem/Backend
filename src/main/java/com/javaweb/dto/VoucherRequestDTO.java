@@ -14,4 +14,6 @@ public class VoucherRequestDTO {
     private BigDecimal minOrderValue;
     private Integer usageLimit;
     private Date expiryDate;
+    private Long categoryId;
+    private Long brandId;
 }

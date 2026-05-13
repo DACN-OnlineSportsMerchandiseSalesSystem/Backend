@@ -9,6 +9,8 @@ public class BrandDTO {
     private Long id;
     private String name;
     private String detail;
-    private String url;
-    private String image;
+    private String imageUrl;
+    private String status;
+    private Integer discount;
+    private Integer rating;
 }
