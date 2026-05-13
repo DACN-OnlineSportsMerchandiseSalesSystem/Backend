@@ -61,6 +61,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/categories/**", "/api/brands/**").permitAll()
                 .requestMatchers("/api/policies/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                
+                // Phân quyền chi tiết cho Order
+                .requestMatchers("/api/orders/all/**").hasRole("ADMIN")
+                .requestMatchers("/api/orders/*/status").hasRole("ADMIN")
+                
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

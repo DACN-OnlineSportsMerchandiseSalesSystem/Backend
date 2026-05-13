@@ -35,7 +35,8 @@ public class TtsService {
 
             System.out.println("\n>>> [FPT.AI] Đang gửi đoạn văn bản: [" + cleanedText + "]");
 
-            HttpEntity<String> entity = new HttpEntity<>(cleanedText, headers);
+            // Đảm bảo Body được ép kiểu byte UTF-8
+            HttpEntity<byte[]> entity = new HttpEntity<>(cleanedText.getBytes(java.nio.charset.StandardCharsets.UTF_8), headers);
 
             ResponseEntity<Map> response = restTemplate.postForEntity(FPT_TTS_URL, entity, Map.class);
 

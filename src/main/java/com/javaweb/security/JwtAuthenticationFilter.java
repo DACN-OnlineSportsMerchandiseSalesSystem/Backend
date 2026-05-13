@@ -50,6 +50,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             // Chính thức gán quyền vào Bộ lọc bảo mật của Spring
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            System.out.println(">>> [DEBUG] Authenticated: " + username + " with authorities: " + userDetails.getAuthorities());
+        } else if (StringUtils.hasText(token)) {
+            System.out.println(">>> [DEBUG] Token provided but failed validation: " + token);
         }
 
         // Tiếp tục màng lọc

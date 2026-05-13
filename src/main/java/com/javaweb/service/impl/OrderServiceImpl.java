@@ -132,6 +132,7 @@ public class OrderServiceImpl implements OrderService {
 		order.setShippingFee(30000L); // Fix cứng phí ship là 30k để chống Cheat
 		order.setReceiverName(request.getReceiverName());
 		order.setPhone(request.getPhone());
+		order.setPaymentMethod(request.getPaymentMethod());
 		order.setStatus(OrderStatus.PENDING); // Đơn hàng mới nằm ở trạng thái Chờ Xử Lý
 
 		BigDecimal total = BigDecimal.ZERO;

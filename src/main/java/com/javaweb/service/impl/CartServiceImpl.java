@@ -23,6 +23,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional
 public class CartServiceImpl implements CartService {
 
     private final CartRepository cartRepository;
@@ -58,6 +59,27 @@ public class CartServiceImpl implements CartService {
             newItem.setQuantity(request.getQuantity());
             cart.getCartItems().add(newItem);
             cartItemRepository.save(newItem);
+        }
+
+        return mapToDTO(cartRepository.save(cart));
+    }
+
+    @Override
+    public CartDTO updateCartItemQuantity(Long cartItemId, Integer quantity, String userEmail) {
+        Cart cart = getOrCreateCart(userEmail);
+        
+        CartItem itemToUpdate = cart.getCartItems().stream()
+                .filter(item -> item.getId().equals(cartItemId))
+                .findFirst()
+                .orElseThrow(() -> new ResouceNotFoundException("CartItem not found with id: " + cartItemId));
+
+        if (quantity > 0) {
+            itemToUpdate.setQuantity(quantity);
+            cartItemRepository.save(itemToUpdate);
+        } else {
+            // Nếu quantity <= 0 thì coi như xóa
+            cart.getCartItems().remove(itemToUpdate);
+            cartItemRepository.delete(itemToUpdate);
         }
 
         return mapToDTO(cartRepository.save(cart));
@@ -105,7 +127,11 @@ public class CartServiceImpl implements CartService {
         BigDecimal total = BigDecimal.ZERO;
 
         if (cart.getCartItems() != null) {
-            for (CartItem item : cart.getCartItems()) {
+            // Sắp xếp theo ID để tránh việc sản phẩm bị nhảy vị trí khi cập nhật
+            List<CartItem> sortedItems = new ArrayList<>(cart.getCartItems());
+            sortedItems.sort((a, b) -> a.getId().compareTo(b.getId()));
+
+            for (CartItem item : sortedItems) {
                 CartItemDTO itemDTO = new CartItemDTO();
                 itemDTO.setId(item.getId());
                 itemDTO.setQuantity(item.getQuantity());

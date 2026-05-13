@@ -32,11 +32,13 @@ public class OrderController {
     // HTTP GET: Tuyến đường Dành riêng cho ADMIN để xem toàn bộ Đơn hàng trên hệ
     // thống
     @GetMapping("/all")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OrderDTO>> getAllOrdersForAdmin(
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date toDate,
             @RequestParam(required = false) String keyword) {
+        System.out.println(">>> [ADMIN API] Fetching all orders with status: " + status);
         return ResponseEntity.ok(orderService.getAllOrder(status, fromDate, toDate, keyword));
     }
 

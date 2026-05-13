@@ -9,7 +9,9 @@ import java.util.Date;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "cart_items") // Đã thêm 's' cho khớp với Database
+@Table(name = "cart_items", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"cart_id", "product_variant_id"})
+})
 @Getter
 @Setter
 

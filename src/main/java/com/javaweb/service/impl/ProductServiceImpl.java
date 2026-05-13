@@ -16,6 +16,7 @@ import com.javaweb.entity.Orders;
 import com.javaweb.entity.OrderItems;
 import com.javaweb.entity.User;
 import com.javaweb.service.ProductService;
+import com.javaweb.service.ProductVectorSyncService;
 import com.javaweb.exception.ResouceNotFoundException;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -48,6 +49,7 @@ public class ProductServiceImpl implements ProductService {
     private final UserRepository userRepository;
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
+    private final ProductVectorSyncService vectorSyncService;
 
     @Override
     public List<ProductDTO> searchProductsAi(String query) {
@@ -122,14 +124,18 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public ProductDTO createProduct(ProductRequestDTO request) {
         Product product = new Product();
-        return mapToDTO(productRepository.save(mapToEntity(product, request)));
+        Product saved = productRepository.save(mapToEntity(product, request));
+        vectorSyncService.syncProduct(saved); // CDC: Đồng bộ Vector DB ngay lập tức
+        return mapToDTO(saved);
     }
 
     @Override
     public ProductDTO updateProduct(Long id, ProductRequestDTO request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResouceNotFoundException("Product not found with id: " + id));
-        return mapToDTO(productRepository.save(mapToEntity(product, request)));
+        Product saved = productRepository.save(mapToEntity(product, request));
+        vectorSyncService.syncProduct(saved); // CDC: Cập nhật Vector DB khi sửa sản phẩm
+        return mapToDTO(saved);
     }
 
     @Override
@@ -138,6 +144,7 @@ public class ProductServiceImpl implements ProductService {
                 .orElseThrow(() -> new ResouceNotFoundException("Product not found with id: " + id));
         product.setStatus("INACTIVE");
         productRepository.save(product);
+        // Không cần sync Vector DB khi xóa mềm vì AI sẽ dùng SQL context thật
     }
 
     private Product mapToEntity(Product product, ProductRequestDTO request) {

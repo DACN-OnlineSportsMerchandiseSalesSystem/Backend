@@ -32,6 +32,12 @@ public class CartController {
         return ResponseEntity.status(HttpStatus.CREATED).body(updatedCart);
     }
 
+    @PutMapping("/items/{itemId}")
+    public ResponseEntity<CartDTO> updateCartItem(@PathVariable Long itemId, @RequestParam Integer quantity) {
+        CartDTO updatedCart = cartService.updateCartItemQuantity(itemId, quantity, getCurrentUserEmail());
+        return ResponseEntity.ok(updatedCart);
+    }
+
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<CartDTO> removeCartItem(@PathVariable Long itemId) {
         CartDTO updatedCart = cartService.removeCartItem(itemId, getCurrentUserEmail());
