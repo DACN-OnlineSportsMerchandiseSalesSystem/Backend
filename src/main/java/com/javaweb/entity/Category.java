@@ -27,9 +27,6 @@ public class Category {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "discount")
-    private Integer discount;
-
     @Column(name = "rating")
     private Integer rating;
 

@@ -11,6 +11,5 @@ public class BrandDTO {
     private String detail;
     private String imageUrl;
     private String status;
-    private Integer discount;
     private Integer rating;
 }

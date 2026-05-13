@@ -26,7 +26,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import com.javaweb.enums.OrderStatus;
+import com.javaweb.enums.DiscountScope;
+import com.javaweb.entity.Discount;
+import com.javaweb.repository.DiscountRepository;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Optional;
@@ -46,6 +50,7 @@ public class ProductServiceImpl implements ProductService {
     private final BrandRepository brandRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final DiscountRepository discountRepository;
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
 
@@ -205,19 +210,23 @@ public class ProductServiceImpl implements ProductService {
                 vDto.setSize(v.getSize());
                 vDto.setColor(v.getColor());
 
-                // Logic Khuyến Mãi Đè Chồng (Dynamic Calculation)
-                int effectiveDiscount = 0;
-                if (v.getDiscount() != null)
-                    effectiveDiscount = Math.max(effectiveDiscount, v.getDiscount());
-                if (product.getCategories() != null) {
-                    for (Category category : product.getCategories()) {
-                        if (category.getDiscount() != null) {
-                            effectiveDiscount = Math.max(effectiveDiscount, category.getDiscount());
-                        }
-                    }
-                }
-                if (product.getBrand() != null && product.getBrand().getDiscount() != null)
-                    effectiveDiscount = Math.max(effectiveDiscount, product.getBrand().getDiscount());
+                // Logic Khóa giá (Dynamic Discount Calculation)
+                List<Discount> activeDiscounts = discountRepository.findAllActiveDiscounts(new Date());
+                int effectiveDiscount = activeDiscounts.stream()
+                        .filter(d -> {
+                            if (d.getScope() == DiscountScope.GLOBAL) return true;
+                            if (d.getScope() == DiscountScope.BRAND && product.getBrand() != null
+                                    && product.getBrand().getId().equals(d.getBrand() != null ? d.getBrand().getId() : null))
+                                return true;
+                            if (d.getScope() == DiscountScope.CATEGORY && d.getCategory() != null
+                                    && product.getCategories() != null)
+                                return product.getCategories().stream()
+                                        .anyMatch(c -> c.getId().equals(d.getCategory().getId()));
+                            return false;
+                        })
+                        .mapToInt(Discount::getDiscountPercent)
+                        .max()
+                        .orElse(0);
 
                 vDto.setDiscount(effectiveDiscount);
                 vDto.setOriginalPrice(v.getOriginalPrice());
