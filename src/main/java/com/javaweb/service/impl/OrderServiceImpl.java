@@ -35,6 +35,7 @@ public class OrderServiceImpl implements OrderService {
 	private final UserRepository userRepository;
 	private final VoucherRepository voucherRepository;
 	private final EmailService emailService;
+	private final CartService cartService;
 
 	@Override
 	public List<OrderDTO> getAllOrder(OrderStatus status, Date fromDate, Date toDate, String keyword) {
@@ -273,6 +274,13 @@ public class OrderServiceImpl implements OrderService {
 		order.setTotalPrice(total);
 
 		Orders savedOrder = orderRepository.save(order);
+
+		// 5. Xóa giỏ hàng sau khi tạo đơn thành công
+		try {
+			cartService.clearCart(userEmail);
+		} catch (Exception e) {
+			System.err.println("Không thể xóa giỏ hàng: " + e.getMessage());
+		}
 
 		// Gửi Email thông báo bất đồng bộ
 		try {

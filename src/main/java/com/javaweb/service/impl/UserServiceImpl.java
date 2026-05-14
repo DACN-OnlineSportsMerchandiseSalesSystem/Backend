@@ -42,6 +42,7 @@ public class UserServiceImpl implements UserService {
             dto.setPhone(user.getPhone());
             dto.setStatus(user.getStatus());
             dto.setLevel(user.getLevel());
+            dto.setRank(user.getRank());
             // Xử lý cẩn thận cái Role (Kiểm tra null để tránh lỗi NullPointerException)
             if (user.getRole() != null) {
                 dto.setRoleName(user.getRole().getName());
@@ -72,6 +73,7 @@ public class UserServiceImpl implements UserService {
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
+        dto.setRank(user.getRank());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -120,6 +122,7 @@ public class UserServiceImpl implements UserService {
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
+        dto.setRank(user.getRank());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -157,6 +160,7 @@ public class UserServiceImpl implements UserService {
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
+        dto.setRank(user.getRank());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -176,6 +180,7 @@ public class UserServiceImpl implements UserService {
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
+        dto.setRank(user.getRank());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }
@@ -202,6 +207,7 @@ public class UserServiceImpl implements UserService {
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
+        dto.setRank(user.getRank());
         if (user.getRole() != null) {
             dto.setRoleName(user.getRole().getName());
         }

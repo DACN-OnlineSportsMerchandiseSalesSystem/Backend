@@ -53,11 +53,11 @@ public class Product { // Tên Class KHÔNG CÓ 's'
     // --- CÁC MỐI QUAN HỆ ONE-TO-MANY (Kéo thằng khác vào) ---
 
     // 1 Sản phẩm có nhiều Biến thể (Size, màu)
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "products")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "products", orphanRemoval = true)
     private Set<ProductVariant> productVariants = new HashSet<>();
 
     // 1 Sản phẩm có nhiều Hình ảnh
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "products")
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "products", orphanRemoval = true)
     private Set<ProductImage> productImages = new HashSet<>();
 
     // 1 Sản phẩm có nhiều Đánh giá

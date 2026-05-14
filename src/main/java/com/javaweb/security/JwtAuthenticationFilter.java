@@ -36,21 +36,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Lấy username (email) từ token
             String username = jwtTokenProvider.getUsername(token);
 
-            // Tải lại thông tin người dùng từ CSDL
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+            try {
+                // Tải lại thông tin người dùng từ CSDL
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
-            // Cấp quyền (Tạo Thẻ thông hành Authentication Token)
-            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                    userDetails,
-                    null,
-                    userDetails.getAuthorities()
-            );
+                // Cấp quyền (Tạo Thẻ thông hành Authentication Token)
+                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
+                );
 
-            authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-            // Chính thức gán quyền vào Bộ lọc bảo mật của Spring
-            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-            System.out.println(">>> [DEBUG] Authenticated: " + username + " with authorities: " + userDetails.getAuthorities());
+                // Chính thức gán quyền vào Bộ lọc bảo mật của Spring
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                System.out.println(">>> [DEBUG] Authenticated: " + username + " with authorities: " + userDetails.getAuthorities());
+            } catch (Exception e) {
+                System.out.println(">>> [DEBUG] Token hợp lệ nhưng không tìm thấy User trong DB: " + username);
+            }
         } else if (StringUtils.hasText(token)) {
             System.out.println(">>> [DEBUG] Token provided but failed validation: " + token);
         }

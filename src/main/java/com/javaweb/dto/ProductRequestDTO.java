@@ -23,4 +23,8 @@ public class ProductRequestDTO {
     private Long productVariantId;
     private List<Long> categoryIds;
     private Long brandId;
+    private String imageUrl;
+    private List<String> sizes;
+    private List<String> colors;
+    private Integer stockQuantity;
 }

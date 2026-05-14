@@ -45,13 +45,13 @@ public class ReturnController {
     // ==========================================
 
     @GetMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ReturnRequestDTO>> getAllReturnRequests() {
         return ResponseEntity.ok(returnService.getAllReturnRequests());
     }
 
     @PutMapping("/{id}/process")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReturnRequestDTO> processReturnRequest(
             @PathVariable Long id, 
             @RequestParam String action) { // action = "APPROVE" or "REJECT"

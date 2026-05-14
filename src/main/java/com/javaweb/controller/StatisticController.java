@@ -18,7 +18,7 @@ public class StatisticController {
 
     // Lấy dữ liệu kho để vẽ biểu đồ
     @GetMapping("/daily")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<DailyStatisticDTO>> getDailyStatistics(
             @RequestParam(required = false, defaultValue = "0") int month,
             @RequestParam(required = false, defaultValue = "0") int year) {
@@ -28,7 +28,7 @@ public class StatisticController {
 
     // Lấy top sản phẩm bán chạy nhất
     @GetMapping("/top-selling")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<TopSellingProductDTO>> getTopSellingProducts(
             @RequestParam(required = false, defaultValue = "0") int month,
             @RequestParam(required = false, defaultValue = "0") int year,
@@ -39,7 +39,7 @@ public class StatisticController {
 
     // Nút bấm ma thuật: Kích hoạt ETL gom dữ liệu ngay lập tức (Dùng lúc Demo đồ án)
     @PostMapping("/trigger-sync")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> triggerSync() {
         statisticService.triggerManualSync();
         return ResponseEntity.ok("Đã chạy tiến trình gom dữ liệu (Data Warehouse) thành công!");
@@ -47,7 +47,7 @@ public class StatisticController {
 
     // Lấy doanh thu theo từng tháng trong năm (vẽ biểu đồ cột cho Admin Dashboard)
     @GetMapping("/revenue")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<RevenueDTO>> getMonthlyRevenue(
             @RequestParam(required = false, defaultValue = "0") int year) {
         return ResponseEntity.ok(statisticService.getMonthlyRevenue(year));

@@ -22,6 +22,7 @@ public class ProductDTO {
     private List<Long> categoryIds;
     private List<String> categoryNames;
     private String brandName;
+    private Long brandId;
 
     private List<ProductImageDTO> images;
     private List<ProductVariantDTO> variants;

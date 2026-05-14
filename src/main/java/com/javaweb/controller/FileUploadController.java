@@ -19,7 +19,7 @@ public class FileUploadController {
     private final CloudinaryService cloudinaryService;
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
-    @PreAuthorize("hasAuthority('ADMIN')") // Thường thì Admin mới được quyền upload ảnh sản phẩm
+    @PreAuthorize("hasRole('ADMIN')") // ADMIN mới được quyền upload ảnh
     public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
             if (file.isEmpty()) {
@@ -37,6 +37,7 @@ public class FileUploadController {
             return ResponseEntity.ok(response);
 
         } catch (Exception e) {
+            e.printStackTrace(); // In lỗi chi tiết ra Console của Backend
             Map<String, String> error = new HashMap<>();
             error.put("error", "Lỗi tải ảnh: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

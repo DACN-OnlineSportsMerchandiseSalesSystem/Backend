@@ -24,7 +24,7 @@ public class AiConfig {
     public ChatLanguageModel geminiChatModel() {
         return GoogleAiGeminiChatModel.builder()
                 .apiKey(geminiApiKey.trim())
-                .modelName("gemini-3-flash-preview")
+                .modelName("gemini-3.1-flash-lite")
                 .temperature(0.7)
                 .build();
     }
@@ -34,7 +34,7 @@ public class AiConfig {
         // Sử dụng StreamingChatLanguageModel chuyên biệt cho việc phát luồng
         return GoogleAiGeminiStreamingChatModel.builder()
                 .apiKey(geminiApiKey.trim())
-                .modelName("gemini-3-flash-preview")
+                .modelName("gemini-3.1-flash-lite")
                 .temperature(0.7)
                 .build();
     }

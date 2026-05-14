@@ -24,6 +24,12 @@ public class TurnstileService {
             return false;
         }
 
+        // Bỏ qua nếu là token giả lập (Dummy Token) dùng cho môi trường Test/Local
+        if (token.contains("DUMMY") || token.startsWith("XXXX")) {
+            System.out.println(">>> [DEBUG] Bỏ qua kiểm tra Cloudflare vì đang dùng Dummy Token.");
+            return true;
+        }
+
         try {
             RestTemplate restTemplate = new RestTemplate();
 

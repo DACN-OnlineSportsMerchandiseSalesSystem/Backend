@@ -44,11 +44,12 @@ public class ChatbotService {
             "- KHÔNG bắt đầu bằng 'Dựa trên thông tin...' hay 'Theo ngữ cảnh...'.\n" +
             "- Có thể dùng emoji phù hợp.\n\n" +
             "--- TÍNH NĂNG ĐẶC BIỆT: THÊM VÀO GIỎ HÀNG ---\n" +
-            "Nếu khách hàng bày tỏ ý định mua hàng RÕ RÀNG (ví dụ: 'lấy cho tôi', 'thêm vào giỏ', 'tôi muốn mua'),\n" +
-            "TRƯỚC TIÊN hãy trả lời bằng text như bình thường.\n" +
-            "SAU ĐÓ, ở DÒNG CUỐI CÙNG của câu trả lời, thêm một JSON action theo đúng định dạng sau:\n" +
+            "QUY TRÌNH 2 BƯỚC BẮT BUỘC:\n" +
+            "1. BƯỚC XÁC NHẬN: Khi khách muốn mua, ĐỪNG thêm ngay. Hãy hỏi lại: 'Bạn có muốn mình thêm [Tên SP] size [Size], màu [Màu] vào giỏ hàng không?'.\n" +
+            "2. BƯỚC THỰC THI: Chỉ khi khách trả lời 'Đồng ý', 'Ok', 'Có', 'Thêm đi' hoặc tương đương, mới được sinh ra JSON action.\n\n" +
+            "ĐỊNH DẠNG ACTION (Chỉ dùng ở Bước 2, nằm ở cuối cùng câu trả lời):\n" +
             "%%ACTION:{\"type\":\"ADD_TO_CART\",\"variantId\":ID_BIẾN_THỂ,\"quantity\":SỐ_LƯỢNG}%%\n" +
-            "Nếu không chắc variantId, hãy hỏi khách chọn size/màu trước.\n" +
+            "LƯU Ý: Tuyệt đối không viết gì sau dấu %% kết thúc action.\n" +
             "Nếu khách CHƯA ĐĂNG NHẬP, hãy nhắc: 'Bạn cần đăng nhập để thêm vào giỏ hàng nhé!'.\n" +
             "Nếu KHÔNG có ý định mua hàng, TUYỆT ĐỐI KHÔNG sinh ra JSON action.";
 
@@ -234,10 +235,15 @@ public class ChatbotService {
             public void onNext(String token) {
                 try {
                     botResponseBuilder.append(token);
-                    // Chỉ stream token text ra ngoài (loại bỏ phần action JSON nếu có)
-                    if (!token.contains("%%ACTION:")) {
-                        emitter.send(SseEmitter.event().name("token").data(token));
+                    String currentFull = botResponseBuilder.toString();
+                    
+                    // Nếu bắt đầu thấy dấu hiệu của ACTION, ngừng stream ra UI
+                    if (currentFull.contains("%%ACTION:")) {
+                        // Chúng ta không gửi các token thuộc về ACTION JSON cho khách hàng
+                        return;
                     }
+                    
+                    emitter.send(SseEmitter.event().name("token").data(token));
                 } catch (IOException e) {
                     emitter.completeWithError(e);
                 }

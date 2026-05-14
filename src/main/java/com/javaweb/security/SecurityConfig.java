@@ -39,9 +39,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // Cho phép các origin cụ thể (Không được dùng "*" khi setAllowCredentials là true)
         configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept"));
+        // Cho phép tất cả các Header để tránh lỗi CORS khi trình duyệt gửi thêm header lạ
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -62,6 +64,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/policies/**").permitAll()
                 .requestMatchers("/api/discounts/active").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/error").permitAll()
                 
                 // Phân quyền chi tiết cho Order
                 .requestMatchers("/api/orders/all/**").hasRole("ADMIN")

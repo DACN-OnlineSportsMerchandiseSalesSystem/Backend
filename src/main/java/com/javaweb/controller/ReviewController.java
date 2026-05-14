@@ -46,14 +46,14 @@ public class ReviewController {
 
     // HTTP GET: Admin lấy tất cả đánh giá
     @GetMapping("/reviews")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ReviewDTO>> getAllReviews() {
         return ResponseEntity.ok(reviewService.getAllReviews());
     }
 
     // HTTP PUT: Admin phản hồi đánh giá của khách hàng
     @PutMapping("/reviews/{reviewId}/reply")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ReviewDTO> replyToReview(
             @PathVariable Long reviewId,
             @RequestBody ReviewReplyRequestDTO payload) {

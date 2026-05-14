@@ -40,31 +40,31 @@ public class VoucherController {
     // ==========================================
 
     @GetMapping("/admin")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<VoucherDTO>> getAllVouchers() {
         return ResponseEntity.ok(voucherService.getAllVouchers());
     }
 
     @GetMapping("/admin/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<VoucherDTO> getVoucherById(@PathVariable Long id) {
         return ResponseEntity.ok(voucherService.getVoucherById(id));
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<VoucherDTO> createVoucher(@RequestBody VoucherRequestDTO requestDTO) {
         return ResponseEntity.status(201).body(voucherService.createVoucher(requestDTO));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<VoucherDTO> updateVoucher(@PathVariable Long id, @RequestBody VoucherRequestDTO requestDTO) {
         return ResponseEntity.ok(voucherService.updateVoucher(id, requestDTO));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteVoucher(@PathVariable Long id) {
         voucherService.deleteVoucher(id);
         return ResponseEntity.noContent().build();
