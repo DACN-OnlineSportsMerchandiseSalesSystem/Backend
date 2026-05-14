@@ -46,6 +46,19 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/interests")
+    public ResponseEntity<List<CategoryDTO>> getMyInterests() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(userService.getMyInterests(email));
+    }
+
+    @PutMapping("/interests")
+    public ResponseEntity<Void> updateInterests(@RequestBody List<Long> categoryIds) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.updateInterests(email, categoryIds);
+        return ResponseEntity.ok().build();
+    }
+
     // ==========================================
     // NHÓM API DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)
     // ==========================================

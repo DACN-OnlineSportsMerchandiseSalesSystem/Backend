@@ -44,7 +44,7 @@ public class Product { // Tên Class KHÔNG CÓ 's'
 
     @ManyToMany
     @JoinTable(
-        name = "product_categories",
+        name = "product_category",
         joinColumns = @JoinColumn(name = "product_id"),
         inverseJoinColumns = @JoinColumn(name = "category_id")
     )

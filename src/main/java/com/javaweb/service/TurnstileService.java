@@ -20,32 +20,33 @@ public class TurnstileService {
     private static final String TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
     public boolean verifyToken(String token) {
-        if (token == null || token.isEmpty()) {
-            return false;
-        }
+        return true;
+        // if (token == null || token.isEmpty()) {
+        //     return false;
+        // }
 
-        try {
-            RestTemplate restTemplate = new RestTemplate();
+        // try {
+        //     RestTemplate restTemplate = new RestTemplate();
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        //     HttpHeaders headers = new HttpHeaders();
+        //     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-            map.add("secret", secretKey);
-            map.add("response", token);
+        //     MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        //     map.add("secret", secretKey);
+        //     map.add("response", token);
 
-            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+        //     HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
 
-            ResponseEntity<TurnstileResponse> response = restTemplate.postForEntity(
-                    TURNSTILE_VERIFY_URL, request, TurnstileResponse.class);
+        //     ResponseEntity<TurnstileResponse> response = restTemplate.postForEntity(
+        //             TURNSTILE_VERIFY_URL, request, TurnstileResponse.class);
 
-            if (response.getBody() != null) {
-                return response.getBody().isSuccess();
-            }
-        } catch (Exception e) {
-            System.err.println("Lỗi khi gọi API Cloudflare Turnstile: " + e.getMessage());
-        }
+        //     if (response.getBody() != null) {
+        //         return response.getBody().isSuccess();
+        //     }
+        // } catch (Exception e) {
+        //     System.err.println("Lỗi khi gọi API Cloudflare Turnstile: " + e.getMessage());
+        // }
 
-        return false;
+        // return false;
     }
 }

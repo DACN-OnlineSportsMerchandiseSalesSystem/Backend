@@ -49,7 +49,7 @@ public class User {
     private Gender gender; 
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "rank")
+    @Column(name = "ranked")
     private RankType rank; 
 
     @Column(name = "last_login")

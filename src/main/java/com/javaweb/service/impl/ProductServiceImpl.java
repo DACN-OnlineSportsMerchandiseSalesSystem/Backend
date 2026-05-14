@@ -97,10 +97,25 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDTO> getProductsByCategory(Long categoryId) {
-        return productRepository.findByCategories_Id(categoryId)
+        List<Long> allCategoryIds = new ArrayList<>();
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new ResouceNotFoundException("Category not found"));
+        
+        getCategoryIdsRecursive(category, allCategoryIds);
+        
+        return productRepository.findByCategories_IdIn(allCategoryIds)
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
+    }
+
+    private void getCategoryIdsRecursive(Category category, List<Long> ids) {
+        ids.add(category.getId());
+        if (category.getSubCategories() != null) {
+            for (Category sub : category.getSubCategories()) {
+                getCategoryIdsRecursive(sub, ids);
+            }
+        }
     }
 
     @Override

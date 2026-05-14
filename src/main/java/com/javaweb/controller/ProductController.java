@@ -39,7 +39,7 @@ public class ProductController {
     public ResponseEntity<List<ProductDTO>> searchAi(@RequestParam String query) {
         return ResponseEntity.ok(productService.searchProductsAi(query));
     }
-
+    
     @GetMapping("/top-selling")
     public ResponseEntity<List<ProductDTO>> getTopSellingProducts(
             @RequestParam(required = false, defaultValue = "10") int limit) {
