@@ -2,6 +2,11 @@ package com.javaweb.controller;
 
 import com.javaweb.dto.*;
 import com.javaweb.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import com.javaweb.dto.UserRequestDTO;
@@ -19,6 +24,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @RestController
 @RequestMapping("/api/users") // Cổng API cho Frontend gọi
 @RequiredArgsConstructor
+@Tag(name = "User Management", description = "Endpoints for managing customer profiles, personal details, interests, passwords, and administrative user controls")
 public class UserController {
 
     private final UserService userService;
@@ -28,18 +34,34 @@ public class UserController {
     // ==========================================
 
     @GetMapping("/my-profile")
+    @Operation(summary = "Get current user profile", description = "Retrieve personal details of the logged-in customer/admin based on session token.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Profile details retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Unauthorized - Access token missing or invalid")
+    })
     public ResponseEntity<UserDTO> getMyProfile() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(userService.getMyProfile(email));
     }
 
     @PutMapping("/my-profile")
+    @Operation(summary = "Update current user profile", description = "Modify profile settings (names, contact details) of the logged-in user.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Profile updated successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid payload details"),
+        @ApiResponse(responseCode = "412", description = "Precondition failed - Authentication required")
+    })
     public ResponseEntity<UserDTO> updateMyProfile(@RequestBody UserRequestDTO requestDTO) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(userService.updateMyProfile(email, requestDTO));
     }
 
     @PutMapping("/change-password")
+    @Operation(summary = "Change user password", description = "Allows the logged-in user to change their authentication password safely.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Password changed successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid password rules or wrong current password")
+    })
     public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequestDTO requestDTO) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         userService.changePassword(email, requestDTO);
@@ -47,12 +69,20 @@ public class UserController {
     }
 
     @GetMapping("/interests")
+    @Operation(summary = "Get user interest categories", description = "Retrieve list of product categories that the customer followed during onboarding/profile setup.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved followed interests list")
+    })
     public ResponseEntity<List<CategoryDTO>> getMyInterests() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(userService.getMyInterests(email));
     }
 
     @PutMapping("/interests")
+    @Operation(summary = "Update followed category interests", description = "Submit a list of category IDs that the user wishes to follow. Affects personalized product recommendation outputs.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Interests list updated successfully")
+    })
     public ResponseEntity<Void> updateInterests(@RequestBody List<Long> categoryIds) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         userService.updateInterests(email, categoryIds);
@@ -65,13 +95,26 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
+    @Operation(summary = "Get all users list", description = "Admin only. Retrieve details of all registered users in the database system.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved all users list"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role")
+    })
     public ResponseEntity<List<UserDTO>> getAll() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getById(@PathVariable Long id) {
+    @Operation(summary = "Get a single user by ID", description = "Admin only. Retrieve complete details of a specific user using their unique database ID.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User details retrieved successfully"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
+        @ApiResponse(responseCode = "404", description = "User profile not found with the given ID")
+    })
+    public ResponseEntity<UserDTO> getById(
+            @Parameter(description = "Unique ID of the user profile", example = "1", required = true)
+            @PathVariable Long id) {
         UserDTO userDTO = userService.getUserById(id);
         if (userDTO == null) {
             return ResponseEntity.notFound().build();
@@ -81,6 +124,12 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
+    @Operation(summary = "Create a new user profile", description = "Admin only. Directly register a new user or administrative staff into the system database.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "User created successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid payload details"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role")
+    })
     public ResponseEntity<UserDTO> create(@RequestBody UserRequestDTO requestDTO) {
         UserDTO newUser = userService.createUser(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
@@ -88,14 +137,31 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<UserDTO> update(@PathVariable Long id, @RequestBody UserRequestDTO requestDTO) {
+    @Operation(summary = "Update user details by ID", description = "Admin only. Edit profiles or update specific settings of any user in the system.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User details updated successfully"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
+        @ApiResponse(responseCode = "404", description = "User not found with the given ID")
+    })
+    public ResponseEntity<UserDTO> update(
+            @Parameter(description = "Unique ID of the user profile to edit", example = "1", required = true)
+            @PathVariable Long id,
+            @RequestBody UserRequestDTO requestDTO) {
         UserDTO updatedUser = userService.updateUser(id, requestDTO);
         return ResponseEntity.ok(updatedUser);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    @Operation(summary = "Delete or ban user profile", description = "Admin only. Delete or deactivate a user account permanently from the database.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "240", description = "User profile deleted successfully"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
+        @ApiResponse(responseCode = "404", description = "User profile not found with the given ID")
+    })
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "Unique ID of the user to delete", example = "1", required = true)
+            @PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }

@@ -5,6 +5,11 @@ import com.javaweb.dto.ChatbotResponse;
 import com.javaweb.dto.ChatbotStreamRequest;
 import com.javaweb.service.ChatbotService;
 import com.javaweb.service.ChatHistoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RestController
 @RequestMapping("/api/chatbot")
 @CrossOrigin("*")
+@Tag(name = "AI Chatbot & RAG", description = "Endpoints for interacting with the AI virtual shopping assistant using hybrid RAG, function calling, and Server-Sent Events (SSE) streaming")
 public class ChatbotController {
 
     private final ChatbotService chatbotService;
@@ -28,6 +34,10 @@ public class ChatbotController {
      * Phương thức đồng bộ (POST) — Dùng cho lời chào nhanh
      */
     @PostMapping
+    @Operation(summary = "Synchronous AI chat greeting", description = "Get a fast synchronous response from the AI model (suitable for generic welcome greetings).")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully received chatbot response")
+    })
     public ResponseEntity<ChatbotResponse> chat(@RequestBody ChatbotRequest request) {
         try {
             ChatbotResponse response = chatbotService.chat(request.getMessage());
@@ -45,6 +55,10 @@ public class ChatbotController {
      * Body: { "message": "...", "productId": 1, "sessionId": "uuid", "userEmail": "..." }
      */
     @PostMapping("/stream")
+    @Operation(summary = "Asynchronous SSE chat stream (Hybrid RAG)", description = "Initiate an SSE stream connection with the AI assistant. Supports catalog queries, function calling, product cards rendering, and shopping advice.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully established Server-Sent Events (SSE) stream emitter")
+    })
     public SseEmitter chatStream(
             @RequestBody ChatbotStreamRequest request,
             @AuthenticationPrincipal UserDetails userDetails
@@ -74,7 +88,13 @@ public class ChatbotController {
      * Xóa lịch sử chat của một phiên (khi user đóng chat hoặc bắt đầu lại)
      */
     @DeleteMapping("/history/{sessionId}")
-    public ResponseEntity<Void> clearHistory(@PathVariable String sessionId) {
+    @Operation(summary = "Clear chat session history", description = "Purge all conversational messages stored in memory/Redis associated with a given session UUID.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Session memory purged successfully")
+    })
+    public ResponseEntity<Void> clearHistory(
+            @Parameter(description = "UUID session identifier", example = "a2c3-dfd4-f3c4", required = true)
+            @PathVariable String sessionId) {
         chatHistoryService.clearHistory(sessionId);
         return ResponseEntity.ok().build();
     }
