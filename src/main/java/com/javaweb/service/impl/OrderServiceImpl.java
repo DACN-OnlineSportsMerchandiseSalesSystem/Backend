@@ -7,6 +7,7 @@ import com.javaweb.entity.Orders;
 import com.javaweb.entity.Product;
 import com.javaweb.entity.ProductVariant;
 import com.javaweb.entity.Voucher;
+import com.javaweb.entity.Discount;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.*;
 import com.javaweb.entity.User;
@@ -36,6 +37,7 @@ public class OrderServiceImpl implements OrderService {
 	private final VoucherRepository voucherRepository;
 	private final EmailService emailService;
 	private final CartService cartService;
+	private final DiscountRepository discountRepository;
 
 	@Override
 	public List<OrderDTO> getAllOrder(OrderStatus status, Date fromDate, Date toDate, String keyword) {
@@ -147,6 +149,8 @@ public class OrderServiceImpl implements OrderService {
 
 		BigDecimal total = BigDecimal.ZERO;
 
+		List<Discount> activeDiscounts = discountRepository.findAllActiveDiscounts(new Date());
+
 		// 1. Trích xuất thông tin giao hàng đắp thẳng vào Đơn Hàng (Snapshot)
 		if (request.getBillingAddress() != null) {
 			order.setBillingStreet(request.getBillingAddress().getStreet());
@@ -183,7 +187,7 @@ public class OrderServiceImpl implements OrderService {
 					item.setProductVariants(variant);
 
 					// Gán giá chốt tại thời điểm mua từ Variant
-					item.setPriceAtPurchase(variant.getPrice());
+					item.setPriceAtPurchase(variant.getPrice(activeDiscounts));
 					// Nếu có logic giảm giá từng món (Flash Sale), gán vào đây
 					item.setDiscountAmount(BigDecimal.ZERO);
 				}
@@ -344,6 +348,7 @@ public class OrderServiceImpl implements OrderService {
 			dto.setProductVariantId(item.getProductVariants().getId());
 			dto.setSize(item.getProductVariants().getSize());
 			dto.setColor(item.getProductVariants().getColor());
+			dto.setOriginalPrice(item.getProductVariants().getOriginalPrice());
 			if (item.getProductVariants().getProducts() != null) {
 				dto.setProductName(item.getProductVariants().getProducts().getName());
 				// Lấy ảnh đầu tiên của sản phẩm làm hình đại diện

@@ -2,10 +2,14 @@ package com.javaweb.service.impl;
 
 import com.javaweb.dto.CategoryDTO;
 import com.javaweb.entity.Category;
+import com.javaweb.entity.Product;
+import com.javaweb.entity.User;
 import com.javaweb.repository.CategoryRepository;
+import com.javaweb.repository.DiscountRepository;
 import com.javaweb.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +19,7 @@ import java.util.List;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final DiscountRepository discountRepository;
 
     @Override
     public List<CategoryDTO> getAllCategories() {
@@ -79,9 +84,39 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+
+        // 1. Set parent to null for subcategories (prevent deleting them or failing because of DB constraint)
+        if (category.getSubCategories() != null) {
+            for (Category subCategory : category.getSubCategories()) {
+                subCategory.setParentCategory(null);
+            }
+            category.getSubCategories().clear();
+        }
+
+        // 2. Remove this category from all products (owning side)
+        if (category.getProducts() != null) {
+            for (Product product : category.getProducts()) {
+                product.getCategories().remove(category);
+            }
+            category.getProducts().clear();
+        }
+
+        // 3. Remove this category from all users (owning side)
+        if (category.getInterestedUsers() != null) {
+            for (User user : category.getInterestedUsers()) {
+                user.getInterestedCategories().remove(category);
+            }
+            category.getInterestedUsers().clear();
+        }
+
+        // 4. Set category to null in discounts
+        discountRepository.nullifyCategoryReferences(id);
+
+        // 5. Finally delete the category
         categoryRepository.delete(category);
     }
 }

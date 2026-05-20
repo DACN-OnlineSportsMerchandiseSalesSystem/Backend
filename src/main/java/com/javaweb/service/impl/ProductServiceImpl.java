@@ -170,6 +170,11 @@ public class ProductServiceImpl implements ProductService {
                 variant.setSize(s);
                 variant.setOriginalPrice(request.getOriginalPrice());
                 variant.setDiscount(request.getDiscount());
+                if (request.getOriginalPrice() != null) {
+                    int disc = request.getDiscount() != null ? request.getDiscount() : 0;
+                    BigDecimal price = request.getOriginalPrice().multiply(BigDecimal.valueOf(100 - disc)).divide(BigDecimal.valueOf(100));
+                    variant.setPrice(price);
+                }
                 variant.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
                 variant.setProducts(product);
                 
@@ -264,7 +269,11 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public List<ProductDTO> getTopSellingProductsPublic(int limit) {
         List<Long> ids = productRepository.findTopSellingProductIds(PageRequest.of(0, limit));
-        if (ids.isEmpty()) return new ArrayList<>();
+        if (ids.isEmpty()) {
+            // Fallback: return any available products when there are no paid/completed orders yet
+            return productRepository.findAll(PageRequest.of(0, limit)).getContent()
+                    .stream().map(this::mapToDTO).collect(Collectors.toList());
+        }
         return productRepository.findAllById(ids).stream().map(this::mapToDTO).collect(Collectors.toList());
     }
 
@@ -287,6 +296,13 @@ public class ProductServiceImpl implements ProductService {
         }
 
         if (catIds.isEmpty()) return getTopSellingProductsPublic(limit);
-        return productRepository.findByCategories_IdIn(new ArrayList<>(catIds), PageRequest.of(0, limit)).stream().map(this::mapToDTO).collect(Collectors.toList());
+        
+        List<ProductDTO> recommended = productRepository.findByCategories_IdIn(new ArrayList<>(catIds), PageRequest.of(0, limit))
+                .stream().map(this::mapToDTO).collect(Collectors.toList());
+                
+        if (recommended.isEmpty()) {
+            return getTopSellingProductsPublic(limit);
+        }
+        return recommended;
     }
 }

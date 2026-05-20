@@ -18,4 +18,5 @@ public class OrderItemDTO {
     private String productName;
     private String size;
     private String color;
+    private BigDecimal originalPrice;
 }

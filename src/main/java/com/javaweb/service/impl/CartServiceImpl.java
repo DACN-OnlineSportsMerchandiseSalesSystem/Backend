@@ -12,6 +12,7 @@ import com.javaweb.repository.CartItemRepository;
 import com.javaweb.repository.CartRepository;
 import com.javaweb.repository.ProductVariantRepository;
 import com.javaweb.repository.UserRepository;
+import com.javaweb.repository.DiscountRepository;
 import com.javaweb.service.CartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class CartServiceImpl implements CartService {
     private final CartItemRepository cartItemRepository;
     private final UserRepository userRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final DiscountRepository discountRepository;
 
     @Override
     public CartDTO getCartForUser(String userEmail) {
@@ -127,6 +129,7 @@ public class CartServiceImpl implements CartService {
         BigDecimal total = BigDecimal.ZERO;
 
         if (cart.getCartItems() != null) {
+            List<com.javaweb.entity.Discount> activeDiscounts = discountRepository.findAllActiveDiscounts(new java.util.Date());
             // Sắp xếp theo ID để tránh việc sản phẩm bị nhảy vị trí khi cập nhật
             List<CartItem> sortedItems = new ArrayList<>(cart.getCartItems());
             sortedItems.sort((a, b) -> a.getId().compareTo(b.getId()));
@@ -139,7 +142,19 @@ public class CartServiceImpl implements CartService {
                 if (item.getProductVariant() != null) {
                     ProductVariant variant = item.getProductVariant();
                     itemDTO.setProductVariantId(variant.getId());
-                    itemDTO.setUnitPrice(variant.getPrice());
+                    BigDecimal itemPrice = variant.getPrice(activeDiscounts);
+                    itemDTO.setUnitPrice(itemPrice);
+                    itemDTO.setOriginalPrice(variant.getOriginalPrice());
+                    
+                    int manualDiscount = variant.getDiscount() != null ? variant.getDiscount() : 0;
+                    int promoDiscount = activeDiscounts.stream().filter(d -> {
+                        if (d.getScope() == com.javaweb.enums.DiscountScope.GLOBAL) return true;
+                        if (d.getScope() == com.javaweb.enums.DiscountScope.BRAND && variant.getProducts() != null && variant.getProducts().getBrand() != null && variant.getProducts().getBrand().getId().equals(d.getBrand() != null ? d.getBrand().getId() : null)) return true;
+                        if (d.getScope() == com.javaweb.enums.DiscountScope.CATEGORY && d.getCategory() != null && variant.getProducts() != null && variant.getProducts().getCategories() != null)
+                            return variant.getProducts().getCategories().stream().anyMatch(c -> c.getId().equals(d.getCategory().getId()));
+                        return false;
+                    }).mapToInt(com.javaweb.entity.Discount::getDiscountPercent).max().orElse(0);
+                    itemDTO.setDiscount(Math.max(manualDiscount, promoDiscount));
                     
                     if (variant.getProducts() != null) {
                         itemDTO.setProductId(variant.getProducts().getId());
@@ -160,8 +175,8 @@ public class CartServiceImpl implements CartService {
                     
                     itemDTO.setVariantInfo(variant.getSize() + " / " + variant.getColor());
 
-                    if (variant.getPrice() != null && item.getQuantity() != null) {
-                        BigDecimal itemTotal = variant.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                    if (itemPrice != null && item.getQuantity() != null) {
+                        BigDecimal itemTotal = itemPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
                         total = total.add(itemTotal);
                     }
                 }

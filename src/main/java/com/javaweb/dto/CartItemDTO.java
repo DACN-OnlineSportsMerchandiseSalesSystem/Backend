@@ -15,5 +15,7 @@ public class CartItemDTO {
     private String variantInfo;  // Thông tin Size/Màu
     private String imageUrl;
     private BigDecimal unitPrice;
+    private BigDecimal originalPrice;
+    private Integer discount;
     private Integer quantity;
 }
