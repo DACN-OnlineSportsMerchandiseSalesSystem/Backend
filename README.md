@@ -1,251 +1,119 @@
-# Backend
-
-## 1. Cấu trúc thư mục
-
-```
-src/
-├── main/
-│   ├── java/
-│   │   └── com/javaweb/
-│   │       ├── controller/       # API Controllers (RESTful)
-│   │       ├── dto/              # Data Transfer Objects (Request/Response)
-│   │       ├── entity/           # JPA Entities (Database Tables)
-│   │       ├── exception/        # Custom Exceptions
-│   │       ├── repository/       # Spring Data JPA Repositories
-│   │       ├── security/         # Security Configuration (JWT, Filters)
-│   │       ├── service/          # Business Logic
-│   │       │   ├── impl/         # Service Implementations
-│   │       │   └── jwt/          # JWT Utilities
-│   │       └── OnlineSportsMerchandiseSalesSystemApplication.java # Main Class
-│   └── resources/
-│       ├── application.properties  # Configuration (DB, Server Port)
-│       └── static/               # Static Files (Optional)
-└── test/
-```
-
-## 2. Các thành phần chính
-
-### 2.1. Entities (src/main/java/com/javaweb/entity)
-
-- **User.java**: Thông tin người dùng
-- **Role.java**: Vai trò (ADMIN, USER, MANAGER)
-- **Product.java**: Thông tin sản phẩm
-- **Category.java**: Danh mục sản phẩm
-- **Brand.java**: Thương hiệu
-- **Order.java**: Đơn hàng
-- **OrderDetail.java**: Chi tiết đơn hàng
-- **Payment.java**: Thông tin thanh toán
-- **Review.java**: Đánh giá sản phẩm
-- **Image.java**: Hình ảnh sản phẩm
-- **Cart.java**: Giỏ hàng
-- **CartItem.java**: Sản phẩm trong giỏ hàng
-
-### 2.2. DTOs (src/main/java/com/javaweb/dto)
-
-- **UserDTO.java**: Trả về thông tin user
-- **UserRequestDTO.java**: Nhận request tạo/update user
-- **ProductDTO.java**: Trả về thông tin product
-- **ProductRequestDTO.java**: Nhận request tạo/update product
-- **AuthResponseDTO.java**: Trả về JWT token
-- **CartDTO.java**: Trả về thông tin giỏ hàng
-- **AddCartRequestDTO.java**: Nhận request thêm vào giỏ hàng
-
-### 2.3. Controllers (src/main/java/com/javaweb/controller)
-
-- **AuthController.java**: Đăng ký, đăng nhập
-- **UserController.java**: Quản lý user
-- **ProductController.java**: Quản lý product
-- **CategoryController.java**: Quản lý category
-- **BrandController.java**: Quản lý brand
-- **OrderController.java**: Quản lý order
-- **PaymentController.java**: Quản lý payment
-- **ReviewController.java**: Quản lý review
-- **ImageController.java**: Quản lý image
-- **CartController.java**: Quản lý giỏ hàng
-
-### 2.4. Services (src/main/java/com/javaweb/service)
-
-- **UserService.java**: Logic nghiệp vụ user
-- **ProductService.java**: Logic nghiệp vụ product
-- **CategoryService.java**: Logic nghiệp vụ category
-- **BrandService.java**: Logic nghiệp vụ brand
-- **OrderService.java**: Logic nghiệp vụ order
-- **PaymentService.java**: Logic nghiệp vụ payment
-- **ReviewService.java**: Logic nghiệp vụ review
-- **ImageService.java**: Logic nghiệp vụ image
-- **CartService.java**: Logic nghiệp vụ giỏ hàng
-
-### 2.5. Security (src/main/java/com/javaweb/security)
-
-- **JwtAuthenticationFilter.java**: Filter xác thực JWT
-- **JwtTokenProvider.java**: Tạo và xác thực JWT token
-- **SecurityConfig.java**: Cấu hình Spring Security
-- **CustomUserDetailsService.java**: Load user từ database
-
-## 3. Cấu hình
-
-### 3.1. application.properties
-
-```properties
-# Server port
-server.port=8080
-
-# Database configuration
-spring.datasource.url=jdbc:mysql://localhost:3306/online_sports_store
-spring.datasource.username=root
-spring.datasource.password=your_password
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-
-# JPA/Hibernate configuration
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
-
-# JWT configuration
-jwt.secret=your-secret-key
-jwt.expiration=86400000
-```
-
-## 4. API Endpoints
-
-### 4.1. Authentication
-
-- `POST /api/auth/register`: Đăng ký tài khoản
-- `POST /api/auth/login`: Đăng nhập
-
-### 4.2. Users
-
-- `GET /api/users`: Lấy tất cả user
-- `GET /api/users/{id}`: Lấy user theo ID
-- `POST /api/users`: Tạo user mới
-- `PUT /api/users/{id}`: Cập nhật user
-- `DELETE /api/users/{id}`: Xóa user
-
-### 4.3. Products
-
-- `GET /api/products`: Lấy tất cả product
-- `GET /api/products/{id}`: Lấy product theo ID
-- `POST /api/products`: Tạo product mới
-- `PUT /api/products/{id}`: Cập nhật product
-- `DELETE /api/products/{id}`: Xóa product
-
-### 4.4. Categories
-
-- `GET /api/categories`: Lấy tất cả category
-- `GET /api/categories/{id}`: Lấy category theo ID
-- `POST /api/categories`: Tạo category mới
-- `PUT /api/categories/{id}`: Cập nhật category
-- `DELETE /api/categories/{id}`: Xóa category
-
-### 4.5. Brands
-
-- `GET /api/brands`: Lấy tất cả brand
-- `GET /api/brands/{id}`: Lấy brand theo ID
-- `POST /api/brands`: Tạo brand mới
-- `PUT /api/brands/{id}`: Cập nhật brand
-- `DELETE /api/brands/{id}`: Xóa brand
-
-### 4.6. Orders
-
-- `GET /api/orders`: Lấy tất cả order
-- `GET /api/orders/{id}`: Lấy order theo ID
-- `POST /api/orders`: Tạo order mới
-- `PUT /api/orders/{id}`: Cập nhật order
-- `DELETE /api/orders/{id}`: Xóa order
-
-### 4.7. Payments
-
-- `GET /api/payments`: Lấy tất cả payment
-- `GET /api/payments/{id}`: Lấy payment theo ID
-- `POST /api/payments`: Tạo payment mới
-- `PUT /api/payments/{id}`: Cập nhật payment
-- `DELETE /api/payments/{id}`: Xóa payment
-
-### 4.8. Reviews
-
-- `GET /api/reviews`: Lấy tất cả review
-- `GET /api/reviews/{id}`: Lấy review theo ID
-- `POST /api/reviews`: Tạo review mới
-- `PUT /api/reviews/{id}`: Cập nhật review
-- `DELETE /api/reviews/{id}`: Xóa review
-
-### 4.9. Images
-
-- `GET /api/images`: Lấy tất cả image
-- `GET /api/images/{id}`: Lấy image theo ID
-- `POST /api/images`: Tạo image mới
-- `PUT /api/images/{id}`: Cập nhật image
-- `DELETE /api/images/{id}`: Xóa image
-
-### 4.10. Carts
-
-- `GET /api/carts`: Lấy thông tin giỏ hàng của user
-- `POST /api/carts/items`: Thêm sản phẩm vào giỏ hàng
-- `DELETE /api/carts/items/{itemId}`: Xóa sản phẩm khỏi giỏ hàng
-- `DELETE /api/carts`: Xóa toàn bộ sản phẩm trong giỏ hàng
-
-## 5. Cách chạy
-
-1. **Cài đặt Java 17+**
-2. **Cài đặt Maven**
-3. **Cài đặt MySQL**
-4. **Tạo database**
-
-```sql
-CREATE DATABASE online_sports_store;
-```
-
-5. **Chạy ứng dụng**
-
-```bash
-mvn spring-boot:run
-mvn clean spring-boot:run
-```
-
-Ứng dụng sẽ chạy tại `http://localhost:8080`
-
-## 6. Cấu trúc Git
-
-- **main**: Production code
-- **develop**: Development branch
-- **feature/***: Feature branches
-- **hotfix/***: Hotfix branches
-
 # 🛒 Online Sports Merchandise Sales System - Backend
 
-Dự án Hệ thống Backend E-commerce bán đồ thể thao trực tuyến, được phát triển theo tiêu chuẩn doanh nghiệp (Layered Architecture).
+Dự án Hệ thống Backend E-commerce bán đồ thể thao trực tuyến, được phát triển theo tiêu chuẩn hệ thống lớn, kiến trúc phân tầng chuyên nghiệp (**Layered Architecture**) phục vụ Đồ án Chuyên ngành (DACN). 
+
+Hệ thống tích hợp các công nghệ hiện đại bậc nhất hiện nay như **Trí tuệ nhân tạo (AI RAG)**, **Chuyển đổi văn bản thành giọng nói (TTS)**, **Thanh toán điện tử MoMo**, và **Hệ thống cá nhân hóa người dùng cao cấp**.
+
+---
 
 ## 🚀 Công nghệ sử dụng (Tech Stack)
-- **Ngôn ngữ:** Java 21
-- **Framework:** Spring Boot 3.4.1
-- **Cơ sở dữ liệu (Database):** MySQL (Quản lý qua Spring Data JPA)
-- **Bảo mật (Security):** Spring Security + JWT (JSON Web Token)
-- **Công cụ hỗ trợ:** Lombok, Maven
+
+*   **Core Backend:** Java 21 / 25 (Hỗ trợ tương thích hoàn hảo bằng Lombok `1.18.40`)
+*   **Framework chính:** Spring Boot 3.4.1 (Spring Security, Spring Data JPA, Spring Web)
+*   **Hệ thống AI & RAG:** LangChain4j (Tích hợp Gemini API)
+*   **Bộ nhớ đệm & Bộ nhớ Chat:** Redis (Quản lý Session Chat Memory)
+*   **Cơ sở dữ liệu (Database):** MySQL 8.x
+*   **Cổng thanh toán:** MoMo E-Wallet API
+*   **Giọng nói AI:** FPT Text-to-Speech (TTS) API
+*   **Lưu trữ đám mây:** Cloudinary API (Upload ảnh sản phẩm và hóa đơn hoàn trả)
+*   **Tài liệu hóa API:** OpenAPI 3 / Swagger UI
+*   **Quản lý thư viện:** Maven 3.x
+
+---
 
 ## 📂 Cấu trúc thư mục (Architecture)
-Cấu trúc chuẩn của dự án được chia làm các tầng rõ rệt giúp dễ dàng bảo trì và mở rộng:
-- `├── config/`: Các file cấu hình chung của hệ thống.
-- `├── controller/`: Tầng giao tiếp (API Gateway) nhận các Restful HTTP Request.
-- `├── dto/`: Data Transfer Object - Quản lý cấu trúc dữ liệu gửi và nhận.
-- `├── entity/`: Định nghĩa thông tin Bảng dưới MySQL.
-- `├── exception/`: Bắt lỗi toàn cục (Global Exception Handler) xử lý chuẩn REST.
-- `├── repository/`: Tầng truy vấn cơ sở dữ liệu với Spring Data JPA.
-- `├── security/`: Chứa các bộ lọc bảo mật và cung cấp JWT Token.
-- `└── service/`: (Interfaces & Impl) Nơi thực thi Core Business Logic của ứng dụng.
 
-## 🔑 Tính năng chính cốt lõi
-1. **Quản lý Sinh thái Người Dùng (`User`, `Role`)**
-   - Đầy đủ luồng Thêm/Xoá/Sửa/Tìm kiếm.
-   - Ứng dụng "Soft Delete" (Xóa mềm) để bảo tồn lịch sử mua hàng.
-2. **Quản lý Thông tin Sản Phẩm (`Product`, `Category`, `Brand`)**
-   - Xây dựng sơ đồ phân cấp Danh mục, Hãng và Biến thể Sản phẩm.
-3. **Bảo mật và Phân Quyền (JWT Authentication)**
-   - Hệ thống khóa chặn vạn năng dựa trên Token. (Hạn sử dụng: 7 ngày).
-4. **Giỏ hàng (Cart)**
-   - Quản lý giỏ hàng của người dùng, hỗ trợ thêm/xóa/xem sản phẩm trong giỏ hàng.
+Kiến trúc dự án được thiết kế phân tầng chuẩn doanh nghiệp (Layered Architecture):
 
-## 🛠️ Hướng dẫn cài đặt (Getting Started)
-1. Hãy tìm mở file `src/main/resources/application.properties`.
-2. Thay đổi tên **database**, **username**, và **password** phù hợp với cài đặt MySQL của máy tính cấu hình của bạn.
-3. Chạy lệnh: `mvn clean install` trên Terminal để tải các thư viện.
-4. Nhấn phím Mũi tên xanh (Run) ở file gốc để khởi động máy chủ. Hibernate sẽ tự lập các bảng MySQL giúp bạn!
+```
+src/main/java/com/javaweb/
+├── config/           # Cấu hình hệ thống (AI, Cloudinary, Swagger, Security, MoMo)
+├── controller/       # Tầng API RESTful (Nhận request và trả phản hồi JSON/SSE)
+├── dto/              # Data Transfer Objects (Payloads gửi/nhận dữ liệu)
+├── entity/           # JPA Entities (Ánh xạ các bảng cơ sở dữ liệu MySQL)
+├── exception/        # Quản lý và xử lý ngoại lệ tập trung (Global Exception Handler)
+├── repository/       # Tầng truy vấn cơ sở dữ liệu (Spring Data JPA)
+├── security/         # Bộ lọc bảo mật JWT & Phân quyền Spring Security
+└── service/          # Tầng xử lý logic nghiệp vụ (Core Business Logic)
+    └── impl/         # Lớp triển khai chi tiết của các Service
+```
+
+---
+
+## 🔑 Tính năng cao cấp nổi bật (Advanced Features)
+
+### 1. 🤖 Trí tuệ nhân tạo AI RAG Chatbot (Server-Sent Events)
+*   **SSE Streaming:** Phản hồi tin nhắn từ AI dạng gõ chữ thời gian thực (real-time stream) mang lại trải nghiệm mượt mà bằng **SseEmitter**.
+*   **Hybrid RAG Search:** Kết hợp tìm kiếm ngữ nghĩa Vector (Vector Search) dựa trên nhúng từ (Embeddings) của LangChain4j và tìm kiếm từ khóa truyền thống để trả về kết quả sản phẩm chính xác nhất.
+*   **Function Calling (Generative UI):** Chatbot tự động phát hiện ý định mua sắm của khách hàng để gọi hàm lấy danh sách sản phẩm và hiển thị thẻ sản phẩm (Product Cards) trực tiếp lên khung chat.
+*   **Redis Chat Memory:** Lưu trữ ngữ cảnh hội thoại theo từng Session ID giúp chatbot ghi nhớ nội dung trò chuyện trước đó của khách hàng.
+
+### 2. 🗣️ Chuyển đổi Văn bản thành Giọng nói (FPT TTS)
+*   Tích hợp trực tiếp với API của **FPT Text-to-Speech** để chuyển câu trả lời văn bản của chatbot thành file âm thanh dạng giọng đọc tự nhiên, tăng tính tương tác thông minh cho hệ thống.
+
+### 3. 💳 Cổng thanh toán Điện tử MoMo
+*   Tích hợp cổng thanh toán trực tuyến **MoMo**. Hỗ trợ tạo link checkout thanh toán bảo mật và xử lý phản hồi bất đồng bộ từ MoMo (**Instant Payment Notification - IPN**) để cập nhật trạng thái hóa đơn tự động.
+
+### 4. 🥇 Hệ thống Thành viên & Cá nhân hóa Người dùng
+*   **Membership Ranks:** Tự động thăng hạng khách hàng dựa trên lịch sử mua sắm (`NEW`, `BRONZE`, `SILVER`, `GOLD`, `DIAMOND`) với các ưu đãi và voucher riêng biệt.
+*   **User Interest Onboarding:** Liên kết Nhiều-Nhiều (Many-to-Many) giữa tài khoản người dùng và danh mục sản phẩm nhằm nắm bắt sở thích thể thao khi đăng ký tài khoản, phục vụ gợi ý sản phẩm cá nhân hóa.
+
+### 5. 📰 Quản lý Tin tức & CDC Auto Vectorization
+*   Hỗ trợ đầy đủ bộ API CRUD cho mục **Blog / Tin tức**.
+*   Khi có bất kỳ thay đổi nào (thêm mới hoặc cập nhật bài viết), hệ thống tự động đặt trạng thái `is_vectorized = false`. Tiến trình chạy ngầm (**DataIngestionService**) sau mỗi 5 phút sẽ tự động quét, mã hóa nhúng và đồng bộ bài viết mới vào **Vector Database** giúp AI cập nhật kiến thức ngay lập tức.
+
+### 6. 📝 Tài liệu hóa API Swagger UI (100% Tiếng Anh)
+*   Được viết tài liệu chi tiết bằng tiếng Anh học thuật chuyên nghiệp cho toàn bộ **14 Controllers** và các DTOs.
+*   Mô tả rõ ràng tham số, kiểu dữ liệu, các mã lỗi trả về (`200`, `201`, `400`, `403`, `404`) phục vụ hội đồng chấm đồ án.
+
+---
+
+## 🛠️ Hướng dẫn cài đặt & Khởi chạy (Getting Started)
+
+### 1. Chuẩn bị Cơ sở dữ liệu MySQL
+1. Khởi động MySQL Server trên máy của bạn.
+2. Tạo mới một cơ sở dữ liệu trống:
+   ```sql
+   CREATE DATABASE backend_dacn;
+   ```
+3. Import schema từ file **[backend.sql](file:///c:/Users/admin/Desktop/Study/252/DACN/database/backend.sql)**.
+4. Nạp dữ liệu mẫu ban đầu từ file **[data.sql](file:///c:/Users/admin/Desktop/Study/252/DACN/database/data.sql)**.
+
+### 2. Cấu hình ứng dụng
+Mở file `src/main/resources/application.properties` để điều chỉnh các tham số kết nối:
+```properties
+# MySQL Connection
+spring.datasource.url=jdbc:mysql://localhost:3306/backend_dacn?useSSL=false&serverTimezone=UTC
+spring.datasource.username=TÊN_USER_MYSQL_CỦA_BẠN
+spring.datasource.password=MẬT_KHẨU_MYSQL_CỦA_BẠN
+
+# API Keys & Third-party integrations
+gemini.api.key=YOUR_GEMINI_API_KEY
+cloudinary.cloud-name=YOUR_CLOUDINARY_NAME
+cloudinary.api-key=YOUR_CLOUDINARY_KEY
+cloudinary.api-secret=YOUR_CLOUDINARY_SECRET
+fpt.tts.api-key=YOUR_FPT_TTS_API_KEY
+```
+
+### 3. Biên dịch và Chạy ứng dụng
+Mở Terminal tại thư mục dự án và thực hiện các lệnh sau:
+
+*   **Tải thư viện và Biên dịch:**
+    ```bash
+    mvn clean compile
+    ```
+*   **Khởi chạy Server:**
+    ```bash
+    mvn spring-boot:run
+    ```
+
+Ứng dụng sẽ được khởi chạy tại cổng mặc định: **`http://localhost:8080`**
+
+---
+
+## 🔍 Xem và thử nghiệm API (Swagger UI)
+
+Sau khi khởi chạy ứng dụng thành công, bồ truy cập vào đường dẫn sau trên trình duyệt để kiểm tra và test thử tất cả các đầu API trực quan:
+👉 **`http://localhost:8080/swagger-ui/index.html`**
+
+Tài liệu hướng dẫn trực quan đã được tích hợp đầy đủ, hỗ trợ gọi trực tiếp qua giao diện web!

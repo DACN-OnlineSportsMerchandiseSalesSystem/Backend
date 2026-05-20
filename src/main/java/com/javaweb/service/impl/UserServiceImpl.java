@@ -12,7 +12,10 @@ import com.javaweb.repository.RoleRepository;
 import com.javaweb.enums.UserStatus;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
+import com.javaweb.repository.CategoryRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     // Inject cỗ máy băm mật khẩu
     private final PasswordEncoder passwordEncoder;
+    private final CategoryRepository categoryRepository;
 
     @Override
     public List<UserDTO> getAllUsers() {
@@ -251,4 +255,36 @@ public class UserServiceImpl implements UserService {
         return userRepository.existsByPhone(phone);
     }
 
+    @Override
+    public void updateInterests(String email, List<Long> categoryIds) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
+
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            user.setInterestedCategories(new HashSet<>());
+        } else {
+            List<Category> categories = categoryRepository.findAllById(categoryIds);
+            user.setInterestedCategories(new HashSet<>(categories));
+        }
+
+        userRepository.save(user);
+    }
+
+    @Override
+    public List<CategoryDTO> getMyInterests(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
+
+        return user.getInterestedCategories().stream()
+                .map(cat -> {
+                    CategoryDTO dto = new CategoryDTO();
+                    dto.setId(cat.getId());
+                    dto.setName(cat.getName());
+                    dto.setSlug(cat.getSlug());
+                    dto.setStatus(cat.getStatus());
+                    dto.setRating(cat.getRating());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
 }

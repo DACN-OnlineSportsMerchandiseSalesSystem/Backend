@@ -17,7 +17,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // Lọc theo Category và Brand
     List<Product> findByCategories_Id(Long categoryId);
+<<<<<<< HEAD
     List<Product> findByCategories_IdIn(List<Long> categoryIds, org.springframework.data.domain.Pageable pageable);
+=======
+    
+    List<Product> findByCategories_IdIn(List<Long> categoryIds);
+>>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
 
     List<Product> findByBrandId(Long brandId);
 

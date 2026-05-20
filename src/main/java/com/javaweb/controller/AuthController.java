@@ -3,6 +3,11 @@ package com.javaweb.controller;
 import com.javaweb.dto.*;
 import com.javaweb.security.*;
 import com.javaweb.service.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth") // Tất cả API bắt đầu bằng /api/auth sẽ không yêu cầu Token!
 @RequiredArgsConstructor
+@Tag(name = "Authentication Management", description = "Endpoints for user registration, login, and OTP dispatch")
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
@@ -26,6 +32,12 @@ public class AuthController {
 
     // 1. TÍNH NĂNG ĐĂNG NHẬP
     @PostMapping("/login")
+    @Operation(summary = "Authenticate user and get JWT token", description = "Validates user credentials along with a Cloudflare Turnstile CAPTCHA token to return a JSON Web Token (JWT) for subsequent API requests.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully authenticated and returned token"),
+        @ApiResponse(responseCode = "400", description = "Bad credentials or format validation failed"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Cloudflare Turnstile validation failed")
+    })
     public ResponseEntity<?> login(@RequestBody LoginDTO loginDto) {
         // Kiểm tra Cloudflare Turnstile Token
         if (!turnstileService.verifyToken(loginDto.getTurnstileToken())) {
@@ -49,6 +61,13 @@ public class AuthController {
 
     // 2. YÊU CẦU MÃ OTP ĐỂ ĐĂNG KÝ
     @PostMapping("/send-otp")
+    @Operation(summary = "Send one-time password (OTP)", description = "Generates and sends a 6-digit OTP verification code to the customer's email address. Checks first if the email already exists.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "OTP sent successfully to email address"),
+        @ApiResponse(responseCode = "400", description = "Invalid/Missing email address parameter"),
+        @ApiResponse(responseCode = "409", description = "Conflict - Email already registered in the system"),
+        @ApiResponse(responseCode = "500", description = "Internal Server Error - SMTP mail server dispatch failed")
+    })
     public ResponseEntity<?> sendOtp(@RequestBody com.javaweb.dto.SendOtpRequestDTO request) {
         String email = request.getEmail();
         if (email == null || email.isEmpty()) {
@@ -73,6 +92,13 @@ public class AuthController {
 
     // 3. TÍNH NĂNG ĐĂNG KÍ
     @PostMapping("/register")
+    @Operation(summary = "Register a new user account", description = "Processes registration fields, validates the Turnstile bot protection token, checks uniqueness constraints, verifies email OTP, and persists the new customer profile.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Customer registered successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid payload or validation checks failed (e.g. short password, invalid OTP)"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Cloudflare Turnstile token validation failed"),
+        @ApiResponse(responseCode = "409", description = "Conflict - Email or phone number already in use")
+    })
     public ResponseEntity<?> register(@RequestBody UserRequestDTO requestDto) {
         // 1. Kiểm tra Cloudflare Turnstile Token
         if (!turnstileService.verifyToken(requestDto.getTurnstileToken())) {

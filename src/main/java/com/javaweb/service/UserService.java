@@ -24,4 +24,8 @@ public interface UserService {
     boolean existsByEmail(String email);
 
     boolean existsByPhone(String phone);
+
+    void updateInterests(String email, List<Long> categoryIds);
+
+    List<com.javaweb.dto.CategoryDTO> getMyInterests(String email);
 }
