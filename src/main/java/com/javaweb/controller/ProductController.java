@@ -96,27 +96,19 @@ public class ProductController {
     }
 
     @PostMapping
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Create a new product", description = "Admin only. Add a new product to the catalog database.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Product created successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid payload details"),
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN authority")
     })
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     public ResponseEntity<ProductDTO> create(@RequestBody ProductRequestDTO requestDTO) {
         return ResponseEntity.status(201).body(productService.createProduct(requestDTO));
     }
 
     @PutMapping("/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductDTO> update(@PathVariable Long id, @RequestBody ProductRequestDTO requestDTO) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update an existing product", description = "Admin only. Modify details of a product using its database ID.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Product updated successfully"),
@@ -128,16 +120,11 @@ public class ProductController {
             @Parameter(description = "Unique ID of the product to update", example = "1", required = true)
             @PathVariable Long id,
             @RequestBody ProductRequestDTO requestDTO) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         return ResponseEntity.ok(productService.updateProduct(id, requestDTO));
     }
 
     @DeleteMapping("/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Delete a product", description = "Admin only. Permanently delete a product from the database catalog.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "240", description = "Product deleted successfully"),
@@ -147,7 +134,6 @@ public class ProductController {
     public ResponseEntity<Void> delete(
             @Parameter(description = "Unique ID of the product to delete", example = "1", required = true)
             @PathVariable Long id) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }

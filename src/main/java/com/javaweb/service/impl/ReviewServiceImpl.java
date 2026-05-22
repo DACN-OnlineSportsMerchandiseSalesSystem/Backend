@@ -88,6 +88,14 @@ public class ReviewServiceImpl implements ReviewService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public List<ReviewDTO> getLatest5StarReviews() {
+        return reviewRepository.findTop3ByRatingOrderByIdDesc(5)
+                .stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
     private ReviewDTO mapToDTO(Review review) {
         ReviewDTO dto = new ReviewDTO();
         dto.setId(review.getId());

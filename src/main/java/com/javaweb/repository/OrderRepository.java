@@ -29,7 +29,7 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
                                  @Param("start") Date start, 
                                  @Param("end") Date end, 
                                  @Param("keyword") String keyword);
-    @Query("SELECT SUM(o.totalPrice) FROM Orders o WHERE o.status = com.javaweb.enums.OrderStatus.PAID AND o.createAt >= :start AND o.createAt < :end")
+    @Query("SELECT SUM(o.totalPrice) FROM Orders o WHERE o.status IN (com.javaweb.enums.OrderStatus.PAID, com.javaweb.enums.OrderStatus.DELIVERED, com.javaweb.enums.OrderStatus.COMPLETED) AND o.createAt >= :start AND o.createAt < :end")
     BigDecimal sumRevenueByDateRange(@Param("start") Date start, @Param("end") Date end);
 
     @Query("SELECT COUNT(o) FROM Orders o WHERE o.createAt >= :start AND o.createAt < :end")
@@ -38,7 +38,7 @@ public interface OrderRepository extends JpaRepository<Orders, Long> {
     // Gom doanh thu theo từng tháng trong 1 năm (dùng cho biểu đồ doanh thu)
     @Query("SELECT FUNCTION('MONTH', o.createAt), SUM(o.totalPrice), COUNT(o) " +
            "FROM Orders o " +
-           "WHERE o.status IN (com.javaweb.enums.OrderStatus.PAID, com.javaweb.enums.OrderStatus.COMPLETED) " +
+           "WHERE o.status IN (com.javaweb.enums.OrderStatus.PAID, com.javaweb.enums.OrderStatus.DELIVERED, com.javaweb.enums.OrderStatus.COMPLETED) " +
            "AND FUNCTION('YEAR', o.createAt) = :year " +
            "GROUP BY FUNCTION('MONTH', o.createAt) " +
            "ORDER BY FUNCTION('MONTH', o.createAt) ASC")

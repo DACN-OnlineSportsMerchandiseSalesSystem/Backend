@@ -11,4 +11,5 @@ public interface ReviewService {
     void deleteReview(Long reviewId, String userEmail);
     ReviewDTO replyToReview(Long reviewId, String adminReply);
     List<ReviewDTO> getAllReviews();
+    List<ReviewDTO> getLatest5StarReviews();
 }

@@ -33,27 +33,19 @@ public class BrandController {
     }
 
     @PostMapping
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Create a new brand", description = "Admin only. Add a new product brand to the database catalog.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Brand created successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid payload details"),
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN authority")
     })
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     public ResponseEntity<BrandDTO> createBrand(@RequestBody BrandDTO brandDTO) {
         return ResponseEntity.ok(brandService.createBrand(brandDTO));
     }
 
     @PutMapping("/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BrandDTO> updateBrand(@PathVariable Long id, @RequestBody BrandDTO brandDTO) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update an existing brand", description = "Admin only. Modify details of a brand using its database ID.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Brand updated successfully"),
@@ -65,16 +57,11 @@ public class BrandController {
             @Parameter(description = "Unique ID of the brand to update", example = "1", required = true)
             @PathVariable Long id,
             @RequestBody BrandDTO brandDTO) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         return ResponseEntity.ok(brandService.updateBrand(id, brandDTO));
     }
 
     @DeleteMapping("/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteBrand(@PathVariable Long id) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Delete a brand", description = "Admin only. Permanently delete a brand from the database catalog.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Brand deleted successfully"),
@@ -84,7 +71,6 @@ public class BrandController {
     public ResponseEntity<Void> deleteBrand(
             @Parameter(description = "Unique ID of the brand to delete", example = "1", required = true)
             @PathVariable Long id) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         brandService.deleteBrand(id);
         return ResponseEntity.noContent().build();
     }

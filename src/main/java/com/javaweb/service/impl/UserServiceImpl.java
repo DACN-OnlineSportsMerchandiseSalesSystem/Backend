@@ -256,21 +256,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional
     public void updateInterests(String email, List<Long> categoryIds) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
 
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            user.setInterestedCategories(new HashSet<>());
-        } else {
+        user.getInterestedCategories().clear();
+        if (categoryIds != null && !categoryIds.isEmpty()) {
             List<Category> categories = categoryRepository.findAllById(categoryIds);
-            user.setInterestedCategories(new HashSet<>(categories));
+            user.getInterestedCategories().addAll(categories);
         }
 
         userRepository.save(user);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<CategoryDTO> getMyInterests(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));

@@ -48,11 +48,7 @@ public class Voucher {
     private Date createdAt;
 
     @Enumerated(EnumType.STRING)
-<<<<<<< HEAD
     @Column(name = "`rank`")
-=======
-    @Column(name = "ranked")
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     private RankType rank;
 
     // 1 Voucher áp dụng cho nhiều Đơn Hàng

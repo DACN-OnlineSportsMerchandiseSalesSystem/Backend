@@ -30,6 +30,7 @@ import org.springframework.data.domain.PageRequest;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Collections;
 import java.math.BigDecimal;
 
 @Service
@@ -51,20 +52,34 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDTO> searchProductsAi(String query) {
+        // 1. Tìm kiếm chính xác theo Từ khóa (Keyword Search)
+        List<Product> keywordProducts = productRepository.searchByKeyword(query);
+        Set<Long> keywordIds = keywordProducts.stream().map(Product::getId).collect(Collectors.toSet());
+
+        // 2. Tìm kiếm theo Ngữ nghĩa AI (Vector Search)
         Embedding queryEmbedding = embeddingModel.embed(query).content();
         List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, 10, 0.6);
 
-        List<Long> ids = matches.stream()
+        List<Long> aiIds = matches.stream()
                 .filter(match -> "product".equals(match.embedded().metadata().getString("type")))
                 .map(match -> Long.parseLong(match.embedded().metadata().getString("id")))
                 .collect(Collectors.toList());
 
-        if (ids.isEmpty()) return new ArrayList<>();
+        // 3. Kết hợp (Hybrid Search) - Ưu tiên Keyword trước, sau đó bổ sung AI
+        List<Long> mergedIds = new ArrayList<>(keywordIds);
+        for (Long aiId : aiIds) {
+            if (!mergedIds.contains(aiId)) {
+                mergedIds.add(aiId);
+            }
+        }
 
-        List<Product> products = productRepository.findAllById(ids);
-        Map<Long, Product> productMap = products.stream().collect(Collectors.toMap(Product::getId, p -> p));
+        if (mergedIds.isEmpty()) return new ArrayList<>();
 
-        return ids.stream()
+        List<Product> allProducts = productRepository.findAllById(mergedIds);
+        Map<Long, Product> productMap = allProducts.stream().collect(Collectors.toMap(Product::getId, p -> p));
+
+        // Trả về kết quả đã được sắp xếp độ ưu tiên
+        return mergedIds.stream()
                 .filter(productMap::containsKey)
                 .map(id -> mapToDTO(productMap.get(id)))
                 .collect(Collectors.toList());
@@ -77,9 +92,6 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDTO> getProductsByCategory(Long categoryId) {
-<<<<<<< HEAD
-        return productRepository.findByCategories_Id(categoryId).stream().map(this::mapToDTO).collect(Collectors.toList());
-=======
         List<Long> allCategoryIds = new ArrayList<>();
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResouceNotFoundException("Category not found"));
@@ -90,7 +102,6 @@ public class ProductServiceImpl implements ProductService {
                 .stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     }
 
     private void getCategoryIdsRecursive(Category category, List<Long> ids) {
@@ -184,6 +195,16 @@ public class ProductServiceImpl implements ProductService {
         List<String> colors = (request.getColors() != null && !request.getColors().isEmpty()) ? request.getColors() : List.of("Default");
         List<String> sizes = (request.getSizes() != null && !request.getSizes().isEmpty()) ? request.getSizes() : List.of("Default");
 
+        // Xây dựng lookup map tồn kho theo từng biến thể: "COLOR|SIZE" -> stockQuantity
+        Map<String, Integer> variantStockMap = new HashMap<>();
+        if (request.getVariantStocks() != null && !request.getVariantStocks().isEmpty()) {
+            for (com.javaweb.dto.VariantStockDTO vs : request.getVariantStocks()) {
+                if (vs.getColor() != null && vs.getSize() != null) {
+                    variantStockMap.put(vs.getColor().trim() + "|" + vs.getSize().trim(), vs.getStockQuantity() != null ? vs.getStockQuantity() : 0);
+                }
+            }
+        }
+
         int counter = 1;
         for (String c : colors) {
             for (String s : sizes) {
@@ -197,19 +218,26 @@ public class ProductServiceImpl implements ProductService {
                     BigDecimal price = request.getOriginalPrice().multiply(BigDecimal.valueOf(100 - disc)).divide(BigDecimal.valueOf(100));
                     variant.setPrice(price);
                 }
-                variant.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+
+                // Ưu tiên tồn kho riêng theo biến thể, fallback về stockQuantity chung
+                String key = c.trim() + "|" + s.trim();
+                Integer stock = variantStockMap.getOrDefault(key,
+                    request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+                variant.setStockQuantity(stock);
+
                 variant.setProducts(product);
-                
+
                 String baseCode = (product.getProductCode() != null && !product.getProductCode().isEmpty()) ? product.getProductCode() : "P" + (product.getId() != null ? product.getId() : "NEW");
                 // Sử dụng UUID ngắn hoặc counter để đảm bảo SKU không bao giờ trùng trong cùng 1 lần lưu
                 String sku = baseCode + "-" + c.toUpperCase() + "-" + s.toUpperCase() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
                 variant.setSkuCode(sku);
-                
+
                 product.getProductVariants().add(variant);
             }
         }
         return product;
     }
+
 
     private ProductDTO mapToDTO(Product product) {
         ProductDTO dto = new ProductDTO();
@@ -301,30 +329,55 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductDTO> getPersonalizedRecommendations(String email, int limit) {
-        if (email == null || email.isEmpty()) return getTopSellingProductsPublic(limit);
-        Optional<User> u = userRepository.findByEmail(email);
-        if (u.isEmpty()) return getTopSellingProductsPublic(limit);
-
-        List<Orders> orders = orderRepository.findByUserId(u.get().getId());
-        if (orders.isEmpty()) return getTopSellingProductsPublic(limit);
-
         Set<Long> catIds = new HashSet<>();
-        for (Orders o : orders) {
-            for (OrderItems i : o.getOrderItems()) {
-                if (i.getProductVariants() != null && i.getProductVariants().getProducts() != null) {
-                    i.getProductVariants().getProducts().getCategories().forEach(c -> catIds.add(c.getId()));
+
+        if (email != null && !email.isEmpty()) {
+            Optional<User> u = userRepository.findByEmail(email);
+            if (u.isPresent()) {
+                // 1. Lấy từ Sở thích mà người dùng đã chọn
+                if (u.get().getInterestedCategories() != null) {
+                    u.get().getInterestedCategories().forEach(c -> catIds.add(c.getId()));
+                }
+
+                // 2. Lấy thêm từ Lịch sử mua hàng
+                List<Orders> orders = orderRepository.findByUserId(u.get().getId());
+                for (Orders o : orders) {
+                    for (OrderItems i : o.getOrderItems()) {
+                        if (i.getProductVariants() != null && i.getProductVariants().getProducts() != null) {
+                            i.getProductVariants().getProducts().getCategories().forEach(c -> catIds.add(c.getId()));
+                        }
+                    }
                 }
             }
         }
 
-        if (catIds.isEmpty()) return getTopSellingProductsPublic(limit);
-        
-        List<ProductDTO> recommended = productRepository.findByCategories_IdIn(new ArrayList<>(catIds), PageRequest.of(0, limit))
-                .stream().map(this::mapToDTO).collect(Collectors.toList());
-                
-        if (recommended.isEmpty()) {
-            return getTopSellingProductsPublic(limit);
+        // Nếu KHÔNG có sở thích nào (null/chưa lưu/khách vãng lai), mặc định chọn "Chạy bộ"
+        if (catIds.isEmpty()) {
+            Optional<Category> chayBo = categoryRepository.findByName("Chạy bộ");
+            chayBo.ifPresent(category -> catIds.add(category.getId()));
         }
-        return recommended;
+
+        if (!catIds.isEmpty()) {
+            List<Product> rawProducts = productRepository.findByCategories_IdIn(new ArrayList<>(catIds));
+            
+            // Lọc ra các sản phẩm Unique (tránh trùng lặp nếu 1 sp có nhiều category)
+            Set<Product> uniqueProducts = new HashSet<>(rawProducts);
+            List<Product> productList = new ArrayList<>(uniqueProducts);
+            
+            // Xáo trộn để đa dạng hóa bộ môn và tạo sự tươi mới mỗi lần F5
+            Collections.shuffle(productList);
+
+            List<ProductDTO> recommended = productList.stream()
+                    .limit(limit)
+                    .map(this::mapToDTO)
+                    .collect(Collectors.toList());
+                    
+            if (!recommended.isEmpty()) {
+                return recommended;
+            }
+        }
+        
+        // Cứu cánh cuối cùng nếu cả "Chạy bộ" cũng không có sản phẩm
+        return getTopSellingProductsPublic(limit);
     }
 }

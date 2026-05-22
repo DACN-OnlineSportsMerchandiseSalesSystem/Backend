@@ -57,26 +57,18 @@ public class VoucherController {
     // ==========================================
 
     @GetMapping("/admin")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get all store vouchers", description = "Admin only. Retrieve a list of all system vouchers including expired or inactive ones.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved all vouchers list"),
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN authority")
     })
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     public ResponseEntity<List<VoucherDTO>> getAllVouchers() {
         return ResponseEntity.ok(voucherService.getAllVouchers());
     }
 
     @GetMapping("/admin/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<VoucherDTO> getVoucherById(@PathVariable Long id) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get voucher by ID", description = "Admin only. Retrieve detailed configuration of a specific voucher campaign.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved voucher details"),
@@ -86,32 +78,23 @@ public class VoucherController {
     public ResponseEntity<VoucherDTO> getVoucherById(
             @Parameter(description = "ID of the voucher campaign", example = "1", required = true)
             @PathVariable Long id) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         return ResponseEntity.ok(voucherService.getVoucherById(id));
     }
 
     @PostMapping("/admin")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Create a new voucher", description = "Admin only. Add a new voucher campaign with specified discount type, rate, rules, limits, and expiration date.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Voucher campaign created successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid payload details"),
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN authority")
     })
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     public ResponseEntity<VoucherDTO> createVoucher(@RequestBody VoucherRequestDTO requestDTO) {
         return ResponseEntity.status(201).body(voucherService.createVoucher(requestDTO));
     }
 
     @PutMapping("/admin/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<VoucherDTO> updateVoucher(@PathVariable Long id, @RequestBody VoucherRequestDTO requestDTO) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update an existing voucher", description = "Admin only. Edit parameters, limits, or validity rules of an existing voucher campaign.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Voucher campaign updated successfully"),
@@ -122,16 +105,11 @@ public class VoucherController {
             @Parameter(description = "ID of the voucher campaign to update", example = "1", required = true)
             @PathVariable Long id, 
             @RequestBody VoucherRequestDTO requestDTO) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         return ResponseEntity.ok(voucherService.updateVoucher(id, requestDTO));
     }
 
     @DeleteMapping("/admin/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteVoucher(@PathVariable Long id) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Delete a voucher campaign", description = "Admin only. Permanently delete a voucher campaign from the database.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "240", description = "Voucher campaign deleted successfully"),
@@ -141,7 +119,6 @@ public class VoucherController {
     public ResponseEntity<Void> deleteVoucher(
             @Parameter(description = "ID of the voucher campaign to delete", example = "1", required = true)
             @PathVariable Long id) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         voucherService.deleteVoucher(id);
         return ResponseEntity.noContent().build();
     }

@@ -47,7 +47,7 @@ public class BlogController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create a new blog post", description = "Admin only. Add a new blog post to the system. The new post will automatically be scheduled for AI vector ingestion.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "Blog post created successfully"),
@@ -59,7 +59,7 @@ public class BlogController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update an existing blog post", description = "Admin only. Modify details of a blog post by its ID.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Blog post updated successfully"),
@@ -75,7 +75,7 @@ public class BlogController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Delete a blog post", description = "Admin only. Permanently delete a blog post from the system database by its ID.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Blog post deleted successfully"),

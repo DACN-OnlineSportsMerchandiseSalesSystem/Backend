@@ -25,11 +25,7 @@ public class FileUploadController {
     private final CloudinaryService cloudinaryService;
 
     @PostMapping(value = "/upload", consumes = "multipart/form-data")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')") // ADMIN mới được quyền upload ảnh
-    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')") // Thường thì Admin mới được quyền upload ảnh sản phẩm
     @Operation(summary = "Upload image to Cloudinary", description = "Admin only. Uploads a product picture or blog header media file directly to Cloudinary storage and returns the secure URL.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Image uploaded successfully and secure URL returned"),
@@ -40,7 +36,6 @@ public class FileUploadController {
     public ResponseEntity<Map<String, String>> uploadImage(
             @Parameter(description = "Multipart file object of the image", required = true)
             @RequestParam("file") MultipartFile file) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         try {
             if (file.isEmpty()) {
                 Map<String, String> error = new HashMap<>();

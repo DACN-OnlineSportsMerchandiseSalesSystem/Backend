@@ -49,11 +49,7 @@ public class User {
     private Gender gender; 
 
     @Enumerated(EnumType.STRING)
-<<<<<<< HEAD
     @Column(name = "`rank`")
-=======
-    @Column(name = "ranked")
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     private RankType rank; 
 
     @Column(name = "last_login")

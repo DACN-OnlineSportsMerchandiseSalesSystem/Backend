@@ -32,27 +32,19 @@ public class CategoryController {
     }
 
     @PostMapping
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Create a new category", description = "Admin only. Add a new product category to the database.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Category created successfully"),
         @ApiResponse(responseCode = "400", description = "Invalid payload details"),
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN authority")
     })
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO categoryDTO) {
         return ResponseEntity.ok(categoryService.createCategory(categoryDTO));
     }
 
     @PutMapping("/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryDTO categoryDTO) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update an existing category", description = "Admin only. Modify details of a category using its database ID.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Category updated successfully"),
@@ -64,16 +56,11 @@ public class CategoryController {
             @Parameter(description = "Unique ID of the category to update", example = "1", required = true)
             @PathVariable Long id,
             @RequestBody CategoryDTO categoryDTO) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         return ResponseEntity.ok(categoryService.updateCategory(id, categoryDTO));
     }
 
     @DeleteMapping("/{id}")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Delete a category", description = "Admin only. Permanently delete a category from the database.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Category deleted successfully"),
@@ -83,7 +70,6 @@ public class CategoryController {
     public ResponseEntity<Void> deleteCategory(
             @Parameter(description = "Unique ID of the category to delete", example = "1", required = true)
             @PathVariable Long id) {
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }

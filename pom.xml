@@ -13,11 +13,7 @@
 	</parent>
 	<properties>
 		<java.version>21</java.version>
-<<<<<<< HEAD
 		<lombok.version>1.18.34</lombok.version>
-=======
-		<lombok.version>1.18.40</lombok.version>
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
 	</properties>
 	<dependencies>
 

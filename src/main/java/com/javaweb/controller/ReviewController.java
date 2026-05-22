@@ -72,26 +72,25 @@ public class ReviewController {
 
     // HTTP GET: Admin lấy tất cả đánh giá
     @GetMapping("/reviews")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Get all store reviews", description = "Admin only. Retrieve a comprehensive list of all product reviews submitted across the store.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved reviews list"),
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN authority")
     })
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     public ResponseEntity<List<ReviewDTO>> getAllReviews() {
         return ResponseEntity.ok(reviewService.getAllReviews());
     }
 
+    @GetMapping("/reviews/latest-5-star")
+    @Operation(summary = "Get latest 5-star reviews", description = "Retrieve the 3 most recent 5-star reviews across the store.")
+    public ResponseEntity<List<ReviewDTO>> getLatest5StarReviews() {
+        return ResponseEntity.ok(reviewService.getLatest5StarReviews());
+    }
+
     // HTTP PUT: Admin phản hồi đánh giá của khách hàng
     @PutMapping("/reviews/{reviewId}/reply")
-<<<<<<< HEAD
     @PreAuthorize("hasRole('ADMIN')")
-=======
-    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Reply to a review", description = "Admin only. Add or update the official administrative reply text for a customer review.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Reply saved successfully"),
@@ -99,7 +98,6 @@ public class ReviewController {
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN authority"),
         @ApiResponse(responseCode = "404", description = "Review not found with the given ID")
     })
->>>>>>> 0e1e55ba18976b5c12b987bc76b34759271984c4
     public ResponseEntity<ReviewDTO> replyToReview(
             @Parameter(description = "ID of the customer review being replied to", example = "1", required = true)
             @PathVariable Long reviewId,
