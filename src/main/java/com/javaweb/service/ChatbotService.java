@@ -3,6 +3,7 @@ package com.javaweb.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.javaweb.dto.AddCartRequestDTO;
 import com.javaweb.dto.ChatProductCardDTO;
+import com.javaweb.dto.ProductDTO;
 import com.javaweb.entity.Category;
 import com.javaweb.entity.Product;
 import com.javaweb.entity.ProductImage;
@@ -38,15 +39,18 @@ public class ChatbotService {
 
     private static final String SYSTEM_SPORTBOT =
             "Bạn là SportBot, trợ lý tư vấn khách hàng chuyên nghiệp của SportZone.\n" +
-            "QUY ĐỊNH:\n" +
-            "- Trả lời TRỰC TIẾP câu hỏi, tự nhiên, thân thiện, ngắn gọn.\n" +
+            "- TUYỆT ĐỐI CHỈ TƯ VẤN CÁC SẢN PHẨM CÓ THẬT TRONG [KIẾN THỨC BỔ SUNG], [THÔNG TIN SẢN PHẨM] HOẶC [THÔNG TIN TỪ HỆ THỐNG]. Nếu không tìm thấy thông tin trong các mục trên, BẮT BUỘC TRẢ LỜI: 'Hiện tại hệ thống không có thông tin về mẫu này.'. KHÔNG ĐƯỢC TỰ SUY DIỄN THÊM SẢN PHẨM HAY GIÁ BÊN NGOÀI.\n" +
+            "- TUYỆT ĐỐI KHÔNG BỊA ĐẶT THÔNG TIN CHÍNH SÁCH HAY ĐỊA CHỈ. Nếu khách hỏi các vấn đề ngoài lề (như quán ăn, thời tiết...) hoặc chính sách, địa chỉ mà không có trong [KIẾN THỨC BỔ SUNG], BẮT BUỘC TRẢ LỜI: 'Hiện tại hệ thống không có thông tin về vấn đề này.' sau đó LỊCH SỰ DẪN DẮT KHÁCH HÀNG QUAY LẠI CHỦ ĐỀ CÁC SẢN PHẨM THỂ THAO.\n" +
+            "- KHI BÁO GIÁ: HÃY LUÔN ƯU TIÊN SỬ DỤNG GIÁ TRONG [THÔNG TIN SẢN PHẨM] vì đó là giá khuyến mãi mới nhất. Nếu [THÔNG TIN SẢN PHẨM] có giá thấp hơn [KIẾN THỨC BỔ SUNG], hãy nói cho khách biết họ đang được giảm giá.\n" +
+            "- VIẾT ĐÚNG VÀ ĐẦY ĐỦ TÊN SẢN PHẨM. Không được tự ý rút gọn tên (ví dụ: Pegasus 3S không được viết thành us 3S).\n" +
+            "- TRÌNH BÀY RÕ RÀNG: Bắt buộc trình bày mỗi sản phẩm trên một dòng riêng biệt theo định dạng: '- **[Tên sản phẩm đầy đủ]** - Giá: [Giá tiền]'. Nếu có mô tả thì viết tiếp vào cùng dòng. Tuyệt đối không để thừa dấu gạch ngang '-' ở cuối câu hoặc viết dính liền chữ.\n" +
             "- TUYỆT ĐỐI GIỮ NGUYÊN tên thương hiệu, tên sản phẩm tiếng Anh (Nike, Adidas, Yonex...). KHÔNG phiên âm.\n" +
             "- KHÔNG bắt đầu bằng 'Dựa trên thông tin...' hay 'Theo ngữ cảnh...'.\n" +
             "- Có thể dùng emoji phù hợp.\n\n" +
             "--- TÍNH NĂNG ĐẶC BIỆT: THÊM VÀO GIỎ HÀNG ---\n" +
             "QUY TRÌNH 2 BƯỚC BẮT BUỘC:\n" +
-            "1. BƯỚC XÁC NHẬN: Khi khách muốn mua, ĐỪNG thêm ngay. Hãy hỏi lại: 'Bạn có muốn mình thêm [Tên SP] size [Size], màu [Màu] vào giỏ hàng không?'.\n" +
-            "2. BƯỚC THỰC THI: Chỉ khi khách trả lời 'Đồng ý', 'Ok', 'Có', 'Thêm đi' hoặc tương đương, mới được sinh ra JSON action.\n\n" +
+            "1. BƯỚC XÁC NHẬN: Khi khách hàng yêu cầu mua hàng (ví dụ: 'tôi muốn mua', 'thêm vào giỏ', 'lấy cho mình', 'ok thêm đi'), BẠN BẮT BUỘC PHẢI HỎI LẠI XÁC NHẬN: 'Bạn có muốn mình thêm [Tên SP] size [Size], màu [Màu] vào giỏ hàng không?' và DỪNG LẠI (Tuyệt đối không sinh mã JSON lúc này). NẾU KHÁCH CHỈ HỎI THÔNG TIN TƯ VẤN, chỉ được hỏi gợi mở: 'Bạn có muốn tham khảo chi tiết hay chọn màu/size không?'.\n" +
+            "2. BƯỚC THỰC THI: CHỈ KHI NÀO khách hàng ĐỒNG Ý SAU KHI BẠN ĐÃ HỎI CÂU XÁC NHẬN Ở BƯỚC 1, bạn BẮT BUỘC PHẢI thông báo 'Đã thêm sản phẩm vào giỏ hàng thành công!' rồi MỚI ĐƯỢC sinh ra JSON action ở cuối cùng.\n\n" +
             "ĐỊNH DẠNG ACTION (Chỉ dùng ở Bước 2, nằm ở cuối cùng câu trả lời):\n" +
             "%%ACTION:{\"type\":\"ADD_TO_CART\",\"variantId\":ID_BIẾN_THỂ,\"quantity\":SỐ_LƯỢNG}%%\n" +
             "LƯU Ý: Tuyệt đối không viết gì sau dấu %% kết thúc action.\n" +
@@ -60,6 +64,7 @@ public class ChatbotService {
     private final ProductRepository productRepository;
     private final ChatHistoryService chatHistoryService;
     private final CartService cartService;
+    private final ProductService productService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public ChatbotService(ChatLanguageModel chatLanguageModel,
@@ -68,7 +73,8 @@ public class ChatbotService {
                           EmbeddingStore<TextSegment> embeddingStore,
                           ProductRepository productRepository,
                           ChatHistoryService chatHistoryService,
-                          CartService cartService) {
+                          CartService cartService,
+                          ProductService productService) {
         this.chatLanguageModel = chatLanguageModel;
         this.streamingChatLanguageModel = streamingChatLanguageModel;
         this.embeddingModel = embeddingModel;
@@ -76,17 +82,15 @@ public class ChatbotService {
         this.productRepository = productRepository;
         this.chatHistoryService = chatHistoryService;
         this.cartService = cartService;
+        this.productService = productService;
     }
 
-    // =====================================================
-    // Hàm truy vấn Vector DB + trả về cả danh sách productId tìm được
-    // =====================================================
     private record VectorResult(String context, List<Long> productIds) {}
 
     private VectorResult retrieveFromVectorDb(String question, int maxResults) {
         try {
             Embedding queryEmbedding = embeddingModel.embed(question).content();
-            List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, maxResults, 0.45);
+            List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, maxResults, 0.2);
 
             if (matches == null || matches.isEmpty()) return new VectorResult("", List.of());
 
@@ -98,52 +102,57 @@ public class ChatbotService {
                 String type = match.embedded().metadata().getString("type");
                 String idStr = match.embedded().metadata().getString("id");
                 if ("product".equals(type) && idStr != null) {
-                    try { productIds.add(Long.parseLong(idStr)); } catch (NumberFormatException ignored) {}
+                    try {
+                        productIds.add(Long.parseLong(idStr));
+                    } catch (NumberFormatException ignored) {}
                 }
             }
-            return new VectorResult(context.toString(), productIds);
+            return new VectorResult(context.toString(), productIds.stream().distinct().collect(Collectors.toList()));
         } catch (Exception e) {
-            log.warn("Không thể truy vấn Vector DB: {}", e.getMessage());
+            log.error("Lỗi khi retrieve từ Vector DB: {}", e.getMessage());
             return new VectorResult("", List.of());
         }
     }
 
-    // =====================================================
-    // Lấy thông tin sản phẩm chi tiết từ SQL DB
-    // =====================================================
     private String buildProductContext(Long productId) {
-        Optional<Product> optProduct = productRepository.findById(productId);
-        if (optProduct.isEmpty()) return "";
+        if (productId == null) return "";
+        try {
+            ProductDTO dto = productService.getProductById(productId);
+            if (dto != null) {
+                return formatProductDetailsFromDTO(dto);
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi lấy ProductDTO cho chatbot: {}", e.getMessage());
+        }
+        return "";
+    }
 
-        Product p = optProduct.get();
+    private String formatProductDetailsFromDTO(ProductDTO p) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Sản phẩm khách đang xem:\n");
-        sb.append("- Tên: ").append(p.getName()).append("\n");
-        sb.append("- Thương hiệu: ").append(p.getBrand() != null ? p.getBrand().getName() : "N/A").append("\n");
+        sb.append("- Tên sản phẩm: ").append(p.getName()).append("\n");
+        sb.append("- Thương hiệu: ").append(p.getBrandName() != null ? p.getBrandName() : "N/A").append("\n");
         sb.append("- Danh mục: ").append(
-                p.getCategories() != null && !p.getCategories().isEmpty()
-                        ? p.getCategories().stream().map(Category::getName).collect(Collectors.joining(", "))
+                p.getCategoryNames() != null && !p.getCategoryNames().isEmpty()
+                        ? String.join(", ", p.getCategoryNames())
                         : "N/A"
         ).append("\n");
         sb.append("- Mã SP: ").append(p.getProductCode()).append("\n");
         sb.append("- Mô tả: ").append(p.getDescription() != null ? p.getDescription() : "Không có").append("\n");
 
-        if (p.getProductVariants() != null && !p.getProductVariants().isEmpty()) {
+        if (p.getVariants() != null && !p.getVariants().isEmpty()) {
             sb.append("- Phiên bản có sẵn (dùng variantId để thêm vào giỏ):\n");
-            p.getProductVariants().forEach(v ->
-                sb.append("  • variantId=").append(v.getId())
+            p.getVariants().forEach(v -> {
+                String priceStr = v.getPrice() != null ? String.valueOf(v.getPrice().longValue()) : "Liên hệ";
+                sb.append("  + variantId=").append(v.getId())
                         .append(" | Size ").append(v.getSize())
                         .append(", Màu ").append(v.getColor())
-                        .append(", Giá: ").append(v.getPrice()).append("đ")
-                        .append(", Tồn: ").append(v.getStockQuantity()).append("\n")
-            );
+                        .append(", Giá: ").append(priceStr)
+                        .append(", Tồn: ").append(v.getStockQuantity()).append("\n");
+            });
         }
         return sb.toString();
     }
 
-    // =====================================================
-    // Tạo danh sách Product Cards từ danh sách ID
-    // =====================================================
     private List<ChatProductCardDTO> buildProductCards(List<Long> productIds) {
         if (productIds.isEmpty()) return List.of();
 
@@ -178,54 +187,82 @@ public class ChatbotService {
         }).collect(Collectors.toList());
     }
 
-    // =====================================================
-    // TRƯỜNG HỢP A: Hybrid RAG — Trang Chi tiết Sản phẩm
-    // =====================================================
+    private List<ProductDTO> getTopSellingIfRequested(String message) {
+        String lowerMsg = message.toLowerCase();
+        if (lowerMsg.contains("bán chạy") || lowerMsg.contains("hot") || lowerMsg.contains("best seller") || lowerMsg.contains("bán nhiều nhất")) {
+            try {
+                return productService.getTopSellingProductsPublic(4);
+            } catch (Exception e) {
+                log.warn("Lỗi khi lấy top selling cho chatbot: {}", e.getMessage());
+            }
+        }
+        return List.of();
+    }
+
     public void streamHybrid(String message, Long productId, String sessionId, String userEmail, SseEmitter emitter) {
         String historyContext = (sessionId != null) ? chatHistoryService.getHistoryAsContext(sessionId) : "";
         String productContext = buildProductContext(productId);
-        VectorResult vectorResult = retrieveFromVectorDb(message, 3);
+        VectorResult vectorResult = retrieveFromVectorDb(message, 30);
+        List<ProductDTO> topSelling = getTopSellingIfRequested(message);
+        List<Long> finalProductIds = new ArrayList<>(vectorResult.productIds());
 
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append(SYSTEM_SPORTBOT).append("\n\n");
         if (!historyContext.isEmpty()) promptBuilder.append(historyContext);
         if (!productContext.isEmpty()) promptBuilder.append("[THÔNG TIN SẢN PHẨM]\n").append(productContext).append("\n");
+        
+        if (!topSelling.isEmpty()) {
+            promptBuilder.append("[THÔNG TIN TỪ HỆ THỐNG: SẢN PHẨM BÁN CHẠY NHẤT]\n");
+            for(ProductDTO p : topSelling) {
+                String priceStr = p.getPrice() != null ? String.valueOf(p.getPrice().longValue()) : "Liên hệ";
+                promptBuilder.append("- ").append(p.getName()).append(" (Mã: ").append(p.getProductCode()).append(") - Giá: ").append(priceStr).append("\n");
+                if(!finalProductIds.contains(p.getId())) finalProductIds.add(p.getId());
+            }
+            promptBuilder.append("\n");
+        }
+        
         if (!vectorResult.context().isEmpty()) promptBuilder.append("[KIẾN THỨC BỔ SUNG]\n").append(vectorResult.context()).append("\n");
         if (userEmail == null) promptBuilder.append("[LƯU Ý]: Khách hàng CHƯA ĐĂNG NHẬP. Không thể thêm vào giỏ hàng.\n\n");
         promptBuilder.append("[CÂU HỎI CỦA KHÁCH HÀNG]\n").append(message);
 
         log.info(">>> [HYBRID] productId={} | session={} | user={}", productId, sessionId, userEmail);
-        doStream(promptBuilder.toString(), message, sessionId, userEmail, vectorResult.productIds(), emitter);
+        doStream(promptBuilder.toString(), message, sessionId, userEmail, finalProductIds, emitter);
     }
 
-    // =====================================================
-    // TRƯỜNG HỢP B: Pure RAG — Ngoài trang Sản phẩm
-    // =====================================================
     public void streamPureRag(String message, String sessionId, String userEmail, SseEmitter emitter) {
         String historyContext = (sessionId != null) ? chatHistoryService.getHistoryAsContext(sessionId) : "";
-        VectorResult vectorResult = retrieveFromVectorDb(message, 4);
+        VectorResult vectorResult = retrieveFromVectorDb(message, 30);
+        List<ProductDTO> topSelling = getTopSellingIfRequested(message);
+        List<Long> finalProductIds = new ArrayList<>(vectorResult.productIds());
 
         StringBuilder promptBuilder = new StringBuilder();
         promptBuilder.append(SYSTEM_SPORTBOT).append("\n\n");
         if (!historyContext.isEmpty()) promptBuilder.append(historyContext);
-        if (!vectorResult.context().isEmpty()) promptBuilder.append("[KIẾN THỨC TỪ KHO DỮ LIỆU SPORTZONE]\n").append(vectorResult.context()).append("\n\n");
+        
+        if (!topSelling.isEmpty()) {
+            promptBuilder.append("[THÔNG TIN TỪ HỆ THỐNG: SẢN PHẨM BÁN CHẠY NHẤT]\n");
+            for(ProductDTO p : topSelling) {
+                String priceStr = p.getPrice() != null ? String.valueOf(p.getPrice().longValue()) : "Liên hệ";
+                promptBuilder.append("- ").append(p.getName()).append(" (Mã: ").append(p.getProductCode()).append(") - Giá: ").append(priceStr).append("\n");
+                if(!finalProductIds.contains(p.getId())) finalProductIds.add(p.getId());
+            }
+            promptBuilder.append("\n");
+        }
+        
+        if (!vectorResult.context().isEmpty()) promptBuilder.append("[KIẾN THỨC BỔ SUNG]\n").append(vectorResult.context()).append("\n\n");
         if (userEmail == null) promptBuilder.append("[LƯU Ý]: Khách hàng CHƯA ĐĂNG NHẬP. Không thể thêm vào giỏ hàng.\n\n");
         promptBuilder.append("[CÂU HỎI CỦA KHÁCH HÀNG]\n").append(message);
 
         log.info(">>> [PURE RAG] session={} | user={}", sessionId, userEmail);
-        doStream(promptBuilder.toString(), message, sessionId, userEmail, vectorResult.productIds(), emitter);
+        doStream(promptBuilder.toString(), message, sessionId, userEmail, finalProductIds, emitter);
     }
 
-    // =====================================================
-    // Hàm Streaming chính — tích hợp Memory + Function Calling + Generative UI
-    // =====================================================
     private void doStream(String fullPrompt, String originalMessage, String sessionId,
                           String userEmail, List<Long> suggestedProductIds, SseEmitter emitter) {
 
         List<ChatMessage> messages = List.of(userMessage(fullPrompt));
         StringBuilder botResponseBuilder = new StringBuilder();
 
-        // Lưu tin nhắn của user vào Redis
         if (sessionId != null) {
             chatHistoryService.saveTurn(sessionId, "user", originalMessage);
         }
@@ -237,9 +274,15 @@ public class ChatbotService {
                     botResponseBuilder.append(token);
                     String currentFull = botResponseBuilder.toString();
                     
-                    // Nếu bắt đầu thấy dấu hiệu của ACTION, ngừng stream ra UI
-                    if (currentFull.contains("%%ACTION:")) {
-                        // Chúng ta không gửi các token thuộc về ACTION JSON cho khách hàng
+                    int actionIdx = currentFull.indexOf("%%");
+                    if (actionIdx != -1) {
+                        int tokenStartIdx = currentFull.length() - token.length();
+                        if (actionIdx > tokenStartIdx) {
+                            String safePart = token.substring(0, actionIdx - tokenStartIdx);
+                            if (!safePart.isEmpty()) {
+                                emitter.send(SseEmitter.event().name("token").data(safePart));
+                            }
+                        }
                         return;
                     }
                     
@@ -254,15 +297,13 @@ public class ChatbotService {
                 try {
                     String fullBotResponse = botResponseBuilder.toString();
 
-                    // === Feature 1: Lưu lịch sử vào Redis ===
                     String cleanResponse = fullBotResponse.replaceAll("%%ACTION:\\{.*?\\}%%", "").trim();
                     if (sessionId != null) {
                         chatHistoryService.saveTurn(sessionId, "bot", cleanResponse);
                     }
 
-                    // === Feature 2: Phát hiện và thực thi Action (Function Calling) ===
                     java.util.regex.Matcher actionMatcher = java.util.regex.Pattern
-                            .compile("%%ACTION:(\\{.*?\\})%%")
+                            .compile("%%ACTION:(\\{.*?\\})%%", java.util.regex.Pattern.DOTALL)
                             .matcher(fullBotResponse);
 
                     if (actionMatcher.find() && userEmail != null) {
@@ -283,21 +324,41 @@ public class ChatbotService {
                                 cartService.addCartItem(cartRequest, userEmail);
                                 log.info(">>> [FUNCTION CALL] Đã thêm variantId={} x{} vào giỏ của {}", variantId, quantity, userEmail);
 
-                                // Báo hiệu Frontend cập nhật giỏ hàng
                                 emitter.send(SseEmitter.event().name("cart_updated").data("true"));
+                                emitter.send(SseEmitter.event().name("action").data("%%ACTION:" + actionJson + "%%"));
                             }
                         } catch (Exception ex) {
                             log.error("Lỗi thực thi Action: {}", ex.getMessage());
                         }
                     }
 
-                    // === Feature 3: Generative UI — Gửi Product Cards ===
                     if (!suggestedProductIds.isEmpty()) {
                         List<ChatProductCardDTO> cards = buildProductCards(suggestedProductIds);
-                        if (!cards.isEmpty()) {
-                            String cardsJson = objectMapper.writeValueAsString(cards);
+                        
+                        List<ChatProductCardDTO> filteredCards = new ArrayList<>();
+                        String lowerResponse = fullBotResponse.toLowerCase();
+                        for (ChatProductCardDTO card : cards) {
+                            String lowerName = card.getName().toLowerCase();
+                            boolean match = false;
+                            
+                            if (lowerResponse.contains(lowerName)) {
+                                match = true;
+                            } else {
+                                String[] words = lowerName.split("\\s+");
+                                for (String w : words) {
+                                    if (w.length() >= 4 && lowerResponse.contains(w)) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (match) filteredCards.add(card);
+                        }
+
+                        if (!filteredCards.isEmpty()) {
+                            String cardsJson = objectMapper.writeValueAsString(filteredCards);
                             emitter.send(SseEmitter.event().name("product_cards").data(cardsJson));
-                            log.info(">>> [GENERATIVE UI] Gửi {} product cards.", cards.size());
+                            log.info(">>> [GENERATIVE UI] Gửi {} product cards sau khi lọc.", filteredCards.size());
                         }
                     }
 
@@ -316,16 +377,24 @@ public class ChatbotService {
         });
     }
 
-    // =====================================================
-    // Phương thức đồng bộ — dùng cho lời chào giới thiệu sản phẩm
-    // =====================================================
     public com.javaweb.dto.ChatbotResponse chat(String message) {
-        VectorResult vectorResult = retrieveFromVectorDb(message, 3);
-        String prompt = SYSTEM_SPORTBOT + "\n\n" +
-                (vectorResult.context().isEmpty() ? "" : "[KIẾN THỨC]\n" + vectorResult.context() + "\n\n") +
-                "[CÂU HỎI]\n" + message;
+        VectorResult vectorResult = retrieveFromVectorDb(message, 30);
+        List<ProductDTO> topSelling = getTopSellingIfRequested(message);
 
-        String raw = chatLanguageModel.generate(prompt);
-        return new com.javaweb.dto.ChatbotResponse(raw, raw);
+        StringBuilder promptBuilder = new StringBuilder();
+        promptBuilder.append(SYSTEM_SPORTBOT).append("\n\n");
+        if (!topSelling.isEmpty()) {
+            promptBuilder.append("[THÔNG TIN TỪ HỆ THỐNG: SẢN PHẨM BÁN CHẠY NHẤT]\n");
+            for(ProductDTO p : topSelling) {
+                String priceStr = p.getPrice() != null ? String.valueOf(p.getPrice().longValue()) : "Liên hệ";
+                promptBuilder.append("- ").append(p.getName()).append(" - Giá: ").append(priceStr).append("\n");
+            }
+            promptBuilder.append("\n");
+        }
+        if (!vectorResult.context().isEmpty()) promptBuilder.append("[KIẾN THỨC BỔ SUNG]\n").append(vectorResult.context()).append("\n\n");
+        promptBuilder.append("[CÂU HỎI CỦA KHÁCH HÀNG]\n").append(message);
+
+        Response<AiMessage> response = chatLanguageModel.generate(userMessage(promptBuilder.toString()));
+        return new com.javaweb.dto.ChatbotResponse(response.content().text(), response.content().text());
     }
 }

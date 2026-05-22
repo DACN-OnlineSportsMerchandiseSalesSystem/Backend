@@ -48,8 +48,7 @@ public class DataIngestionService {
         this.embeddingStore = embeddingStore;
     }
 
-    // Tự động chạy ngay khi khởi động và sau đó cứ mỗi 5 phút chạy một lần
-    @PostConstruct
+    // Tự động chạy sau khi khởi động và sau đó cứ mỗi 5 phút chạy một lần
     @Scheduled(fixedDelay = 300000)
     @Transactional
     public void autoIngest() {
@@ -57,7 +56,7 @@ public class DataIngestionService {
         List<Document> documents = new ArrayList<>();
 
         // 1. Sản phẩm chưa được vectorized
-        List<Product> newProducts = productRepository.findByIsVectorizedFalse();
+        List<Product> newProducts = productRepository.findAll();
         for (Product p : newProducts) {
             StringBuilder sb = new StringBuilder();
             sb.append("Loại: Sản phẩm\n");
@@ -86,7 +85,7 @@ public class DataIngestionService {
         }
 
         // 2. Bài viết Blog chưa được vectorized
-        List<Blog> newBlogs = blogRepository.findByIsVectorizedFalse();
+        List<Blog> newBlogs = blogRepository.findAll();
         for (Blog b : newBlogs) {
             String text = String.format(
                 "Loại: Bài viết\nTiêu đề: %s\nChủ đề: %s\nMôn thể thao: %s\nTác giả: %s\nTóm tắt: %s\nNội dung: %s",
@@ -103,7 +102,7 @@ public class DataIngestionService {
         }
 
         // 3. Chính sách cửa hàng chưa được vectorized (MỚI)
-        List<StorePolicy> newPolicies = storePolicyRepository.findByIsVectorizedFalse();
+        List<StorePolicy> newPolicies = storePolicyRepository.findAll();
         for (StorePolicy sp : newPolicies) {
             String text = String.format(
                 "Loại: Chính sách/Hỗ trợ\nTiêu đề: %s\nNhóm: %s\nNội dung:\n%s",
