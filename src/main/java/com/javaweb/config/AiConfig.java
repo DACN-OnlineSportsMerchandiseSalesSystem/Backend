@@ -1,4 +1,4 @@
-package com.javaweb.config;
+﻿package com.javaweb.config;
 
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -24,17 +24,16 @@ public class AiConfig {
     public ChatLanguageModel geminiChatModel() {
         return GoogleAiGeminiChatModel.builder()
                 .apiKey(geminiApiKey.trim())
-                .modelName("gemini-3-flash-preview")
+                .modelName("gemini-3.1-flash-lite")
                 .temperature(0.7)
                 .build();
     }
 
     @Bean
     public StreamingChatLanguageModel streamingChatModel() {
-        // Sử dụng StreamingChatLanguageModel chuyên biệt cho việc phát luồng
         return GoogleAiGeminiStreamingChatModel.builder()
                 .apiKey(geminiApiKey.trim())
-                .modelName("gemini-3-flash-preview")
+                .modelName("gemini-3.1-flash-lite")
                 .temperature(0.7)
                 .build();
     }
@@ -46,13 +45,9 @@ public class AiConfig {
 
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
-        // Cố gắng sửa lỗi 405 bằng cách thêm dấu / vào cuối baseUrl
-        /*return ChromaEmbeddingStore.builder()
+        return ChromaEmbeddingStore.builder()
                 .baseUrl("http://127.0.0.1:8000/")
-                .collectionName("sport_assistant_v1") // Thử một collection name mới
-                .build();*/
-
-        // Sử dụng InMemoryEmbeddingStore để không cần chạy ChromaDB
-        return new InMemoryEmbeddingStore<>();
+                .collectionName("sport_assistant_v2")
+                .build();
     }
 }
