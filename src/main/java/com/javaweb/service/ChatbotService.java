@@ -48,13 +48,17 @@ public class ChatbotService {
             "- KHÔNG bắt đầu bằng 'Dựa trên thông tin...' hay 'Theo ngữ cảnh...'.\n" +
             "- Có thể dùng emoji phù hợp.\n\n" +
             "--- TÍNH NĂNG ĐẶC BIỆT: THÊM VÀO GIỎ HÀNG ---\n" +
-            "QUY TRÌNH 2 BƯỚC BẮT BUỘC:\n" +
-            "1. BƯỚC XÁC NHẬN: Khi khách hàng yêu cầu mua hàng (ví dụ: 'tôi muốn mua', 'thêm vào giỏ', 'lấy cho mình', 'ok thêm đi'), BẠN BẮT BUỘC PHẢI HỎI LẠI XÁC NHẬN: 'Bạn có muốn mình thêm [Tên SP] size [Size], màu [Màu] vào giỏ hàng không?' và DỪNG LẠI (Tuyệt đối không sinh mã JSON lúc này). NẾU KHÁCH CHỈ HỎI THÔNG TIN TƯ VẤN, chỉ được hỏi gợi mở: 'Bạn có muốn tham khảo chi tiết hay chọn màu/size không?'.\n" +
-            "2. BƯỚC THỰC THI: CHỈ KHI NÀO khách hàng ĐỒNG Ý SAU KHI BẠN ĐÃ HỎI CÂU XÁC NHẬN Ở BƯỚC 1, bạn BẮT BUỘC PHẢI thông báo 'Đã thêm sản phẩm vào giỏ hàng thành công!' rồi MỚI ĐƯỢC sinh ra JSON action ở cuối cùng.\n\n" +
-            "ĐỊNH DẠNG ACTION (Chỉ dùng ở Bước 2, nằm ở cuối cùng câu trả lời):\n" +
+            "--- TÍNH NĂNG ĐẶC BIỆT: THÊM VÀO GIỎ HÀNG ---\n" +
+            "QUY TRÌNH MUA HÀNG BẮT BUỘC:\n" +
+            "LƯU Ý CỰC KỲ QUAN TRỌNG: DỮ LIỆU TRONG [KIẾN THỨC BỔ SUNG] CHỈ LÀ TÀI LIỆU THAM KHẢO TÌM ĐƯỢC DỰA TRÊN TỪ KHÓA, ĐÓ KHÔNG PHẢI LÀ SẢN PHẨM KHÁCH HÀNG ĐANG XEM HAY MUỐN MUA! NẾU TRONG [CÂU HỎI CỦA KHÁCH HÀNG] KHÔNG HỀ NHẮC ĐẾN TÊN SẢN PHẨM CỤ THỂ NÀO, BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý SUY DIỄN RẰNG KHÁCH ĐANG NÓI VỀ SẢN PHẨM TRONG [KIẾN THỨC BỔ SUNG]. BẠN BẮT BUỘC PHẢI HỎI: 'Dạ bạn đang muốn mua mẫu sản phẩm nào ạ?' VÀ DỪNG LẠI!\n\n" +
+            "1. CHỌN PHÂN LOẠI: Nếu khách muốn mua nhưng CHƯA RÕ TÊN SẢN PHẨM, bạn BẮT BUỘC phải hỏi lại (VD: 'Bạn đang quan tâm đến mẫu nào ạ?'). TUYỆT ĐỐI KHÔNG được tự đoán sản phẩm. Nếu khách đã chỉ định sản phẩm nhưng chưa rõ size/màu, bạn liệt kê các size/màu đang có. TUYỆT ĐỐI KHÔNG sinh mã JSON ở bước này.\n" +
+            "2. HỎI XÁC NHẬN: CHỈ KHI KHÁCH CHỦ ĐỘNG YÊU CẦU MUA / THÊM VÀO GIỎ (và ĐÃ NÊU RÕ TÊN SẢN PHẨM + size/màu TRONG TIN NHẮN CỦA HỌ), BẠN MỚI ĐƯỢC HỎI: 'Bạn có muốn mình thêm [Tên SP] size [Size], màu [Màu] vào giỏ hàng không?' và DỪNG LẠI. NẾU KHÁCH CHỈ HỎI TỒN KHO ('còn size này không?'), TUYỆT ĐỐI KHÔNG ĐƯỢC hỏi câu này mà chỉ trả lời có/không. TUYỆT ĐỐI KHÔNG sinh mã JSON ở bước này.\n" +
+            "3. THỰC THI (ADD_TO_CART): ĐỂ TRÁNH BỊ PHẠT, BẠN BẮT BUỘC PHẢI TỰ KIỂM TRA LỊCH SỬ TRÒ CHUYỆN: Bạn ĐÃ HỎI nguyên văn câu 'Bạn có muốn mình thêm... vào giỏ hàng không?' CHƯA? NẾU CHƯA HỎI, BẤT CHẤP KHÁCH CÓ YÊU CẦU THÊM VÀO GIỎ, bạn tuyệt đối KHÔNG ĐƯỢC phép sinh mã JSON mà BẮT BUỘC phải thực hiện Bước 2 (Hỏi xác nhận). CHỈ KHI NÀO ĐÃ HỎI Ở TIN NHẮN TRƯỚC và bây giờ khách ĐỒNG Ý, bạn mới thông báo 'Đã thêm sản phẩm vào giỏ hàng thành công!' và sinh ra mã JSON.\n\n" +
+            "ĐỊNH DẠNG ACTION (Chỉ dùng duy nhất ở Bước 3, nằm ở cuối cùng câu trả lời):\n" +
             "%%ACTION:{\"type\":\"ADD_TO_CART\",\"variantId\":ID_BIẾN_THỂ,\"quantity\":SỐ_LƯỢNG}%%\n" +
-            "LƯU Ý: Tuyệt đối không viết gì sau dấu %% kết thúc action.\n" +
+            "LƯU Ý QUAN TRỌNG: TUYỆT ĐỐI KHÔNG VIẾT GÌ SAU DẤU %%.\n" +
             "Nếu khách CHƯA ĐĂNG NHẬP, hãy nhắc: 'Bạn cần đăng nhập để thêm vào giỏ hàng nhé!'.\n" +
+            "Nếu tin nhắn của khách có dạng 'Bối cảnh: ... Nhiệm vụ: ...' thì đây là tin nhắn mồi tự động của hệ thống, TUYỆT ĐỐI KHÔNG sinh ra JSON action.\n" +
             "Nếu KHÔNG có ý định mua hàng, TUYỆT ĐỐI KHÔNG sinh ra JSON action.";
 
     private final ChatLanguageModel chatLanguageModel;
@@ -87,10 +91,10 @@ public class ChatbotService {
 
     private record VectorResult(String context, List<Long> productIds) {}
 
-    private VectorResult retrieveFromVectorDb(String question, int maxResults) {
+    private VectorResult retrieveFromVectorDb(String question, int maxResults, boolean policiesOnly) {
         try {
             Embedding queryEmbedding = embeddingModel.embed(question).content();
-            List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, maxResults, 0.2);
+            List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, maxResults, -1.0);
 
             if (matches == null || matches.isEmpty()) return new VectorResult("", List.of());
 
@@ -98,8 +102,14 @@ public class ChatbotService {
             StringBuilder context = new StringBuilder();
 
             for (EmbeddingMatch<TextSegment> match : matches) {
-                context.append(match.embedded().text()).append("\n---\n");
                 String type = match.embedded().metadata().getString("type");
+                
+                if (policiesOnly && !"policy".equals(type)) {
+                    continue;
+                }
+
+                context.append(match.embedded().text()).append("\n---\n");
+                
                 String idStr = match.embedded().metadata().getString("id");
                 if ("product".equals(type) && idStr != null) {
                     try {
@@ -202,7 +212,7 @@ public class ChatbotService {
     public void streamHybrid(String message, Long productId, String sessionId, String userEmail, SseEmitter emitter) {
         String historyContext = (sessionId != null) ? chatHistoryService.getHistoryAsContext(sessionId) : "";
         String productContext = buildProductContext(productId);
-        VectorResult vectorResult = retrieveFromVectorDb(message, 30);
+        VectorResult vectorResult = retrieveFromVectorDb(message, 30, true);
         List<ProductDTO> topSelling = getTopSellingIfRequested(message);
         List<Long> finalProductIds = new ArrayList<>(vectorResult.productIds());
 
@@ -231,7 +241,7 @@ public class ChatbotService {
 
     public void streamPureRag(String message, String sessionId, String userEmail, SseEmitter emitter) {
         String historyContext = (sessionId != null) ? chatHistoryService.getHistoryAsContext(sessionId) : "";
-        VectorResult vectorResult = retrieveFromVectorDb(message, 30);
+        VectorResult vectorResult = retrieveFromVectorDb(message, 30, false);
         List<ProductDTO> topSelling = getTopSellingIfRequested(message);
         List<Long> finalProductIds = new ArrayList<>(vectorResult.productIds());
 
@@ -251,6 +261,9 @@ public class ChatbotService {
         
         if (!vectorResult.context().isEmpty()) promptBuilder.append("[KIẾN THỨC BỔ SUNG]\n").append(vectorResult.context()).append("\n\n");
         if (userEmail == null) promptBuilder.append("[LƯU Ý]: Khách hàng CHƯA ĐĂNG NHẬP. Không thể thêm vào giỏ hàng.\n\n");
+
+        promptBuilder.append("[LỜI NHẮC CUỐI TỪ HỆ THỐNG]: NẾU khách YÊU CẦU THÊM VÀO GIỎ nhưng KHÔNG NÓI RÕ TÊN SẢN PHẨM CỤ THỂ TRONG CÂU HỎI (ví dụ chỉ nói 'đôi màu đen size 42'), BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý SUY DIỄN SẢN PHẨM TỪ [KIẾN THỨC BỔ SUNG]. BẠN BẮT BUỘC PHẢI HỎI LẠI: 'Dạ bạn đang quan tâm đến mẫu giày/vợt nào ạ?'. ĐÂY LÀ QUY TẮC BẮT BUỘC.\n\n");
+
         promptBuilder.append("[CÂU HỎI CỦA KHÁCH HÀNG]\n").append(message);
 
         log.info(">>> [PURE RAG] session={} | user={}", sessionId, userEmail);
@@ -378,7 +391,7 @@ public class ChatbotService {
     }
 
     public com.javaweb.dto.ChatbotResponse chat(String message) {
-        VectorResult vectorResult = retrieveFromVectorDb(message, 30);
+        VectorResult vectorResult = retrieveFromVectorDb(message, 30, false);
         List<ProductDTO> topSelling = getTopSellingIfRequested(message);
 
         StringBuilder promptBuilder = new StringBuilder();
@@ -392,6 +405,9 @@ public class ChatbotService {
             promptBuilder.append("\n");
         }
         if (!vectorResult.context().isEmpty()) promptBuilder.append("[KIẾN THỨC BỔ SUNG]\n").append(vectorResult.context()).append("\n\n");
+
+        promptBuilder.append("\n[LỜI NHẮC CUỐI CÙNG TỪ HỆ THỐNG TRƯỚC KHI BẠN TRẢ LỜI]: Hãy nhớ lại QUY TRÌNH MUA HÀNG BẮT BUỘC. NẾU khách KHÔNG NÓI RÕ TÊN SẢN PHẨM CỤ THỂ, BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý ĐOÁN HAY HỎI XÁC NHẬN MUA HÀNG VỚI BẤT KỲ SẢN PHẨM NÀO TRONG [KIẾN THỨC BỔ SUNG]. BẠN BẮT BUỘC PHẢI HỎI LẠI: 'Dạ bạn đang quan tâm đến mẫu giày/vợt nào ạ?'.");
+
         promptBuilder.append("[CÂU HỎI CỦA KHÁCH HÀNG]\n").append(message);
 
         Response<AiMessage> response = chatLanguageModel.generate(userMessage(promptBuilder.toString()));

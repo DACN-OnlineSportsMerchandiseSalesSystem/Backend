@@ -1,4 +1,4 @@
-package com.javaweb.config;
+﻿package com.javaweb.config;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
@@ -54,14 +54,20 @@ public class AiConfig {
             };
         }
         return GoogleAiGeminiChatModel.builder()
+<<<<<<< HEAD
                 .apiKey(apiKey)
                 .modelName("gemini-3-flash-preview")
+=======
+                .apiKey(geminiApiKey.trim())
+                .modelName("gemini-3.1-flash-lite")
+>>>>>>> 7fbdeac3afa6edc63f2eed0881337edb4d7ea0dd
                 .temperature(0.7)
                 .build();
     }
 
     @Bean
     public StreamingChatLanguageModel streamingChatModel() {
+<<<<<<< HEAD
         String apiKey = getResolvedApiKey();
         if (apiKey.isEmpty()) {
             return new StreamingChatLanguageModel() {
@@ -76,6 +82,11 @@ public class AiConfig {
         return GoogleAiGeminiStreamingChatModel.builder()
                 .apiKey(apiKey)
                 .modelName("gemini-3-flash-preview")
+=======
+        return GoogleAiGeminiStreamingChatModel.builder()
+                .apiKey(geminiApiKey.trim())
+                .modelName("gemini-3.1-flash-lite")
+>>>>>>> 7fbdeac3afa6edc63f2eed0881337edb4d7ea0dd
                 .temperature(0.7)
                 .build();
     }
@@ -87,13 +98,9 @@ public class AiConfig {
 
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
-        // Cố gắng sửa lỗi 405 bằng cách thêm dấu / vào cuối baseUrl
-        /*return ChromaEmbeddingStore.builder()
+        return ChromaEmbeddingStore.builder()
                 .baseUrl("http://127.0.0.1:8000/")
-                .collectionName("sport_assistant_v1") // Thử một collection name mới
-                .build();*/
-
-        // Sử dụng InMemoryEmbeddingStore để không cần chạy ChromaDB
-        return new InMemoryEmbeddingStore<>();
+                .collectionName("sport_assistant_v2")
+                .build();
     }
 }
