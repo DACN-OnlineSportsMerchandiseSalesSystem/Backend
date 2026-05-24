@@ -4,6 +4,7 @@ services:
     image: mysql:8.0
     container_name: dacn-mysql-db
     restart: always
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: backend_dacn
@@ -24,12 +25,9 @@ services:
     restart: always
     ports:
       - "8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy # Wait for MySQL to be fully ready before starting backend
     environment:
-      # Database connection parameters (Connecting to the 'db' service)
-      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/backend_dacn?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      # Database connection parameters (Connecting directly to your local MySQL on port 3306)
+      SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/backend_dacn?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 123456
       
@@ -37,7 +35,7 @@ services:
       SPRING_DATA_REDIS_URL: rediss://default:AZ_0AAIgcDE4N2Y1Njk5NzZiNWI0NjcyYWFhOGFkNDI4NjU1YWFlZQ@devoted-yeti-40948.upstash.io:6379
       
       # Gemini API Key (Allows you to inject it dynamically or pass from terminal)
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyBIln1iKrzToj2JfnOgEmQ6bIrDL7ymC3U}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
 
       # Kết nối trực tiếp tới container ChromaDB trong cùng mạng Docker Compose
       CHROMA_BASE_URL: http://chromadb:8000/
