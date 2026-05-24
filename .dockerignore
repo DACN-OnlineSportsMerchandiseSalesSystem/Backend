@@ -1,0 +1,15 @@
+target/
+.git/
+.gitignore
+.metadata/
+.settings/
+.project
+.classpath
+Dockerfile
+docker-compose.yml
+README.md
+.vscode/
+.idea/
+mvnw
+mvnw.cmd
+.mvn/

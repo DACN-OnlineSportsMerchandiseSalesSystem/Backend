@@ -1,0 +1,44 @@
+services:
+  # --- DATABASE SERVICE (MySQL 8) ---
+  db:
+    image: mysql:8.0
+    container_name: dacn-mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: backend_dacn
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- BACKEND SERVICE (Spring Boot) ---
+  backend:
+    build: .
+    container_name: dacn-backend-app
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy # Wait for MySQL to be fully ready before starting backend
+    environment:
+      # Database connection parameters (Connecting to the 'db' service)
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/backend_dacn?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123456
+      
+      # Redis cloud URL (copied from application.properties, but can be overridden)
+      SPRING_DATA_REDIS_URL: rediss://default:AZ_0AAIgcDE4N2Y1Njk5NzZiNWI0NjcyYWFhOGFkNDI4NjU1YWFlZQ@devoted-yeti-40948.upstash.io:6379
+      
+      # Gemini API Key (Allows you to inject it dynamically or pass from terminal)
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+
+volumes:
+  mysql_data:
+    driver: local
