@@ -37,8 +37,23 @@ services:
       SPRING_DATA_REDIS_URL: rediss://default:AZ_0AAIgcDE4N2Y1Njk5NzZiNWI0NjcyYWFhOGFkNDI4NjU1YWFlZQ@devoted-yeti-40948.upstash.io:6379
       
       # Gemini API Key (Allows you to inject it dynamically or pass from terminal)
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-AIzaSyBIln1iKrzToj2JfnOgEmQ6bIrDL7ymC3U}
+
+      # Kết nối trực tiếp tới container ChromaDB trong cùng mạng Docker Compose
+      CHROMA_BASE_URL: http://chromadb:8000/
+
+  # --- VECTOR DATABASE (ChromaDB - Bản tương thích 0.5.23) ---
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: dacn-chroma-db
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/data
 
 volumes:
   mysql_data:
+    driver: local
+  chroma_data:
     driver: local

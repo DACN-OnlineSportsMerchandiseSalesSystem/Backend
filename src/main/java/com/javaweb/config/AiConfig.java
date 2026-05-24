@@ -8,7 +8,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.embedding.onnx.allminilml6v2.AllMiniLmL6V2EmbeddingModel;
+import dev.langchain4j.model.googleai.GoogleAiEmbeddingModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiStreamingChatModel;
 import dev.langchain4j.model.output.Response;
@@ -26,6 +26,9 @@ public class AiConfig {
 
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
+
+    @Value("${chroma.base-url:http://127.0.0.1:8000/}")
+    private String chromaBaseUrl;
 
     /**
      * Hàm kiểm tra (If-Else) xem AI có được kích hoạt hay không.
@@ -102,9 +105,12 @@ public class AiConfig {
     @Bean
     public EmbeddingModel geminiEmbeddingModel() {
         if (isAiEnabled()) {
-            // IF: Có cấu hình AI -> Chạy Embedding Model thật nạp thư viện C++ (ONNX
-            // Runtime)
-            return new AllMiniLmL6V2EmbeddingModel();
+            // IF: Có cấu hình AI -> Sử dụng Cloud Embedding Model của Google (không tốn CPU/RAM local)
+            return GoogleAiEmbeddingModel.builder()
+                    .apiKey(getEffectiveApiKey())
+                    .modelName("text-embedding-004")
+                    .outputDimensionality(384)
+                    .build();
         } else {
             // ELSE: Chạy Mock giả lập offline để tránh lỗi UnsatisfiedLinkError trên Docker
             // Alpine
@@ -139,7 +145,7 @@ public class AiConfig {
         if (isAiEnabled()) {
             // IF: Có cấu hình AI -> Kết nối vào cơ sở dữ liệu vector Chroma DB thật
             return ChromaEmbeddingStore.builder()
-                    .baseUrl("http://127.0.0.1:8000/")
+                    .baseUrl(chromaBaseUrl)
                     .collectionName("sport_assistant_v2")
                     .build();
         } else {
