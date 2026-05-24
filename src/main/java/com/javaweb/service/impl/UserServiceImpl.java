@@ -45,6 +45,8 @@ public class UserServiceImpl implements UserService {
             dto.setEmail(user.getEmail());
             dto.setPhone(user.getPhone());
             dto.setStatus(user.getStatus());
+            dto.setGender(user.getGender());
+            dto.setBirthDate(user.getBirthDate());
             dto.setLevel(user.getLevel());
             dto.setRank(user.getRank());
             // Xử lý cẩn thận cái Role (Kiểm tra null để tránh lỗi NullPointerException)
@@ -76,6 +78,8 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
+        dto.setGender(user.getGender());
+        dto.setBirthDate(user.getBirthDate());
         dto.setLevel(user.getLevel());
         dto.setRank(user.getRank());
         if (user.getRole() != null) {
@@ -102,6 +106,12 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getBirthDate() != null) {
+            user.setBirthDate(request.getBirthDate());
+        }
 
         // Cực kì quan trọng: Băm mật khẩu ra thành chuỗi mã hóa trước khi cho vào DB
         user.setPassword(passwordEncoder.encode(request.getPassword()));
@@ -124,6 +134,8 @@ public class UserServiceImpl implements UserService {
         dto.setLastName(user.getLastName());
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
+        dto.setGender(user.getGender());
+        dto.setBirthDate(user.getBirthDate());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
         dto.setRank(user.getRank());
@@ -143,6 +155,12 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getBirthDate() != null) {
+            user.setBirthDate(request.getBirthDate());
+        }
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
@@ -162,6 +180,8 @@ public class UserServiceImpl implements UserService {
         dto.setLastName(user.getLastName());
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
+        dto.setGender(user.getGender());
+        dto.setBirthDate(user.getBirthDate());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
         dto.setRank(user.getRank());
@@ -183,6 +203,8 @@ public class UserServiceImpl implements UserService {
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
         dto.setStatus(user.getStatus());
+        dto.setGender(user.getGender());
+        dto.setBirthDate(user.getBirthDate());
         dto.setLevel(user.getLevel());
         dto.setRank(user.getRank());
         if (user.getRole() != null) {
@@ -200,15 +222,19 @@ public class UserServiceImpl implements UserService {
         if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
         if (request.getLastName() != null) user.setLastName(request.getLastName());
         if (request.getPhone() != null) user.setPhone(request.getPhone());
-
+        if (request.getGender() != null) user.setGender(request.getGender());
+        if (request.getBirthDate() != null) user.setBirthDate(request.getBirthDate());
+ 
         user = userRepository.save(user);
-
+ 
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setEmail(user.getEmail());
         dto.setPhone(user.getPhone());
+        dto.setGender(user.getGender());
+        dto.setBirthDate(user.getBirthDate());
         dto.setStatus(user.getStatus());
         dto.setLevel(user.getLevel());
         dto.setRank(user.getRank());

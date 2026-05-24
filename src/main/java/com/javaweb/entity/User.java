@@ -3,6 +3,7 @@ package com.javaweb.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -47,6 +48,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(name = "gender")
     private Gender gender; 
+
+    @Column(name = "birth_date")
+    @Temporal(TemporalType.DATE)
+    @JsonFormat(pattern = "dd-MM-yyyy", timezone = "GMT+7")
+    private Date birthDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "`rank`")
