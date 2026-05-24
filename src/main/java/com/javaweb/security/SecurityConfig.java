@@ -40,7 +40,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Cho phép các origin cụ thể (Không được dùng "*" khi setAllowCredentials là true)
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://127.0.0.1:5173"));
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:5173", 
+            "http://127.0.0.1:5173", 
+            "https://*.vercel.app",
+            "https://sport-zone-eyv4c7ile-thiet-s-projects.vercel.app"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         // Cho phép tất cả các Header để tránh lỗi CORS khi trình duyệt gửi thêm header lạ
         configuration.setAllowedHeaders(Arrays.asList("*"));
