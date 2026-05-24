@@ -14,6 +14,10 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
+# Cài đặt thêm các thư viện C++ và glibc tương thích ngược (compatibility libraries)
+# giúp mô hình AI thật (ONNX Runtime / Embedding Model) chạy trơn tru trên Docker Alpine.
+RUN apk add --no-cache libc6-compat gcompat libstdc++
+
 # Copy the built jar from the builder stage and rename it to app.jar
 COPY --from=builder /app/target/backend-dacn-1.0.jar app.jar
 
