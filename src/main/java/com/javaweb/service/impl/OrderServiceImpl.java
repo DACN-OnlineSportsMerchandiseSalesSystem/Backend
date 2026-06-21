@@ -82,19 +82,34 @@ public class OrderServiceImpl implements OrderService {
 				userRepository.save(user);
 			}
 		}
+
+		// Logic hoàn trả kho và voucher khi Huỷ Đơn hàng (CANCELED)
+		if (status == OrderStatus.CANCELED && order.getStatus() != OrderStatus.CANCELED) {
+			// 1. Hoàn trả lại số lượng tồn kho (stockQuantity)
+			for (OrderItems item : order.getOrderItems()) {
+				ProductVariant variant = item.getProductVariants();
+				if (variant != null) {
+					variant.setStockQuantity(variant.getStockQuantity() + item.getQuantity());
+					productVariantRepository.save(variant);
+				}
+			}
+			// 2. Hoàn trả lại số lượt dùng voucher (nếu có)
+			Voucher voucher = order.getVoucher();
+			if (voucher != null) {
+				int newUsedCount = Math.max(0, voucher.getUsedCount() - 1);
+				voucher.setUsedCount(newUsedCount);
+				voucherRepository.save(voucher);
+			}
+		}
+
 		order.setStatus(status);
 		return mapToDTO(orderRepository.save(order));
 	}
 
 	@Override
 	public OrderDTO deleteOrder(Long id) {
-		Orders order = orderRepository.findById(id)
-				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
-		// Trong Thương Mại Điện Tử không bao giờ "Xóa Cứng" mất biên lai, ta chỉ Xóa
-		// Mềm (CANCELED)
-		order.setStatus(OrderStatus.CANCELED);
-		orderRepository.save(order);
-		return mapToDTO(order);
+		// Gọi hàm updateOrderStatus để khôi phục tồn kho và voucher tự động
+		return updateOrderStatus(id, OrderStatus.CANCELED);
 	}
 
 	@Override

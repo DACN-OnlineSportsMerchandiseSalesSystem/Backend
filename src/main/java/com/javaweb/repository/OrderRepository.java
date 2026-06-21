@@ -15,6 +15,8 @@ import com.javaweb.enums.OrderStatus;
 public interface OrderRepository extends JpaRepository<Orders, Long> {
     List<Orders> findByUserId(Long userId);
 
+    List<Orders> findByStatusAndCreateAtBefore(OrderStatus status, Date date);
+
     @Query("SELECT o FROM Orders o WHERE " +
            "(:status IS NULL OR o.status = :status) AND " +
            "(:start IS NULL OR o.createAt >= :start) AND " +

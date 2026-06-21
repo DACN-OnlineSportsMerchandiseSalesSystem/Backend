@@ -8,6 +8,8 @@ import com.javaweb.entity.*;
 import com.javaweb.repository.*;
 import com.javaweb.service.ProductService;
 import com.javaweb.service.ProductVectorSyncService;
+import com.javaweb.service.ProductElasticsearchSyncService;
+import com.javaweb.document.ProductDocument;
 import com.javaweb.exception.ResouceNotFoundException;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -16,6 +18,10 @@ import dev.langchain4j.store.embedding.EmbeddingMatch;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.query.Query;
+import org.springframework.data.elasticsearch.core.query.StringQuery;
 
 import com.javaweb.enums.OrderStatus;
 import com.javaweb.enums.DiscountScope;
@@ -49,12 +55,46 @@ public class ProductServiceImpl implements ProductService {
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final ProductVectorSyncService vectorSyncService;
+    private final ProductElasticsearchSyncService elasticsearchSyncService;
+    private final ElasticsearchOperations elasticsearchOperations;
 
     @Override
     public List<ProductDTO> searchProductsAi(String query) {
-        // 1. Tìm kiếm chính xác theo Từ khóa (Keyword Search)
-        List<Product> keywordProducts = productRepository.searchByKeyword(query);
-        Set<Long> keywordIds = keywordProducts.stream().map(Product::getId).collect(Collectors.toSet());
+        // 1. Tìm kiếm chính xác và tìm kiếm mờ (Full-text & Fuzzy Search) bằng Elasticsearch
+        List<Long> esProductIds = new ArrayList<>();
+        try {
+            String jsonQuery = "{\n" +
+                    "  \"bool\": {\n" +
+                    "    \"must\": [\n" +
+                    "      {\n" +
+                    "        \"multi_match\": {\n" +
+                    "          \"query\": \"" + query.replace("\"", "\\\"") + "\",\n" +
+                    "          \"fields\": [\"name^3\", \"searchTag^2\", \"description\", \"brandName\"],\n" +
+                    "          \"fuzziness\": \"AUTO\"\n" +
+                    "        }\n" +
+                    "      }\n" +
+                    "    ],\n" +
+                    "    \"filter\": [\n" +
+                    "      {\n" +
+                    "        \"term\": {\n" +
+                    "          \"status\": \"ACTIVE\"\n" +
+                    "        }\n" +
+                    "      }\n" +
+                    "    ]\n" +
+                    "  }\n" +
+                    "}";
+            Query esQuery = new StringQuery(jsonQuery);
+            SearchHits<ProductDocument> hits = elasticsearchOperations.search(esQuery, ProductDocument.class);
+
+            esProductIds = hits.stream()
+                    .map(hit -> Long.parseLong(hit.getContent().getId()))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("Elasticsearch Query Error: " + e.getMessage());
+            // Fallback sang MySQL search bằng LIKE nếu Elasticsearch có sự cố
+            List<Product> keywordProducts = productRepository.searchByKeyword(query);
+            esProductIds = keywordProducts.stream().map(Product::getId).collect(Collectors.toList());
+        }
 
         // 2. Tìm kiếm theo Ngữ nghĩa AI (Vector Search)
         Embedding queryEmbedding = embeddingModel.embed(query).content();
@@ -65,8 +105,8 @@ public class ProductServiceImpl implements ProductService {
                 .map(match -> Long.parseLong(match.embedded().metadata().getString("id")))
                 .collect(Collectors.toList());
 
-        // 3. Kết hợp (Hybrid Search) - Ưu tiên Keyword trước, sau đó bổ sung AI
-        List<Long> mergedIds = new ArrayList<>(keywordIds);
+        // 3. Kết hợp (Hybrid Search) - Ưu tiên Elasticsearch trước, sau đó bổ sung AI
+        List<Long> mergedIds = new ArrayList<>(esProductIds);
         for (Long aiId : aiIds) {
             if (!mergedIds.contains(aiId)) {
                 mergedIds.add(aiId);
@@ -138,6 +178,11 @@ public class ProductServiceImpl implements ProductService {
         } catch (Exception e) {
             System.err.println("AI Sync Error: " + e.getMessage());
         }
+        try {
+            elasticsearchSyncService.syncProduct(saved);
+        } catch (Exception e) {
+            System.err.println("Elasticsearch Sync Error: " + e.getMessage());
+        }
         return mapToDTO(saved);
     }
 
@@ -150,6 +195,11 @@ public class ProductServiceImpl implements ProductService {
         } catch (Exception e) {
             System.err.println("AI Sync Error: " + e.getMessage());
         }
+        try {
+            elasticsearchSyncService.syncProduct(saved);
+        } catch (Exception e) {
+            System.err.println("Elasticsearch Sync Error: " + e.getMessage());
+        }
         return mapToDTO(saved);
     }
 
@@ -157,7 +207,12 @@ public class ProductServiceImpl implements ProductService {
     public void deleteProduct(Long id) {
         Product product = productRepository.findById(id).orElseThrow(() -> new ResouceNotFoundException("Product not found"));
         product.setStatus("INACTIVE");
-        productRepository.save(product);
+        Product saved = productRepository.save(product);
+        try {
+            elasticsearchSyncService.syncProduct(saved);
+        } catch (Exception e) {
+            System.err.println("Elasticsearch Sync Error: " + e.getMessage());
+        }
     }
 
     private Product mapToEntity(Product product, ProductRequestDTO request) {
@@ -379,5 +434,29 @@ public class ProductServiceImpl implements ProductService {
         
         // Cứu cánh cuối cùng nếu cả "Chạy bộ" cũng không có sản phẩm
         return getTopSellingProductsPublic(limit);
+    }
+
+    /**
+     * Tự động quét và đồng bộ toàn bộ sản phẩm từ MySQL sang Elasticsearch khi khởi động ứng dụng nếu index trống.
+     */
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void initElasticsearchIndexOnStartup() {
+        try {
+            org.springframework.data.elasticsearch.core.query.Query countQuery = 
+                    new org.springframework.data.elasticsearch.core.query.StringQuery("{\"match_all\": {}}");
+            long count = elasticsearchOperations.count(countQuery, ProductDocument.class);
+            if (count == 0) {
+                System.out.println(">>> [Elasticsearch] Khởi chạy đồng bộ dữ liệu ban đầu từ MySQL sang Elasticsearch...");
+                List<Product> products = productRepository.findAll();
+                for (Product p : products) {
+                    elasticsearchSyncService.syncProduct(p);
+                }
+                System.out.println(">>> [Elasticsearch] Hoàn tất đồng bộ dữ liệu ban đầu. Đã đánh chỉ mục " + products.size() + " sản phẩm.");
+            } else {
+                System.out.println(">>> [Elasticsearch] Chỉ mục đã có " + count + " sản phẩm. Bỏ qua đồng bộ ban đầu.");
+            }
+        } catch (Exception e) {
+            System.err.println(">>> [Elasticsearch] Cảnh báo: Không thể thực hiện đồng bộ dữ liệu ban đầu (Elasticsearch có đang chạy không?): " + e.getMessage());
+        }
     }
 }

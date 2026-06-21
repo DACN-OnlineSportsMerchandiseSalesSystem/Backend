@@ -13,10 +13,25 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456" ]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # --- ELASTIC-SEARCH
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    container_name: dacn-elasticsearch
+    environment:
+      - discovery.type=single-node
+      # Tắt security để dev/test local dễ dàng
+      - xpack.security.enabled=false
+      # Giới hạn RAM tối đa 512MB để không bị nặng máy
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
 
   # --- BACKEND SERVICE (Spring Boot) ---
   backend:
@@ -30,15 +45,18 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://host.docker.internal:3306/backend_dacn?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: 123456
-      
+
       # Redis cloud URL (copied from application.properties, but can be overridden)
       SPRING_DATA_REDIS_URL: rediss://default:AZ_0AAIgcDE4N2Y1Njk5NzZiNWI0NjcyYWFhOGFkNDI4NjU1YWFlZQ@devoted-yeti-40948.upstash.io:6379
-      
+
       # Gemini API Key (Allows you to inject it dynamically or pass from terminal)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
 
       # Kết nối trực tiếp tới container ChromaDB trong cùng mạng Docker Compose
       CHROMA_BASE_URL: http://chromadb:8000/
+
+      # Kết nối tới container Elasticsearch
+      SPRING_ELASTICSEARCH_URIS: http://elasticsearch:9200
 
   # --- VECTOR DATABASE (ChromaDB - Bản tương thích 0.5.23) ---
   chromadb:
@@ -54,4 +72,6 @@ volumes:
   mysql_data:
     driver: local
   chroma_data:
+    driver: local
+  es_data:
     driver: local

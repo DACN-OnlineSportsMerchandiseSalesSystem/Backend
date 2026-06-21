@@ -1,6 +1,7 @@
 package com.javaweb.service.impl;
 
 import com.javaweb.config.MoMoConfig;
+import com.javaweb.config.VNPayConfig;
 import com.javaweb.entity.Orders;
 import com.javaweb.entity.Payment;
 import com.javaweb.enums.OrderStatus;
@@ -16,14 +17,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl implements PaymentService {
 
     private final MoMoConfig moMoConfig;
+    private final VNPayConfig vnPayConfig;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
 
@@ -89,12 +90,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void processMoMoIpn(Map<String, String> payload) {
-        System.out.println("Received IPN: " + payload);
+        System.out.println("Received MOMO IPN: " + payload);
 
         String partnerCode = payload.get("partnerCode");
         String orderId = payload.get("orderId");
         String requestId = payload.get("requestId");
-        String amount = String.valueOf(payload.get("amount")); // Có thể MOMO trả về số
+        String amount = String.valueOf(payload.get("amount")); 
         String orderInfo = payload.get("orderInfo");
         String orderType = payload.get("orderType");
         String transId = String.valueOf(payload.get("transId"));
@@ -123,7 +124,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (!calculatedSignature.equals(momoSignature)) {
             System.err.println("MOMO IPN: Invalid Signature!");
-            return; // Ignore if invalid
+            return;
         }
 
         if ("0".equals(resultCode)) {
@@ -142,6 +143,122 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setTransactionCode(transId);
             payment.setOrders(order);
             paymentRepository.save(payment);
+        }
+    }
+
+    @Override
+    public String createVNPayPayment(Long orderId, String ipAddr) {
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResouceNotFoundException("Order not found"));
+
+        String vnp_Version = "2.1.0";
+        String vnp_Command = "pay";
+        String vnp_TmnCode = vnPayConfig.getTmnCode();
+        long amount = order.getTotalPrice().longValue() * 100;
+        String vnp_CurrCode = "VND";
+        String vnp_TxnRef = orderId + "_" + System.currentTimeMillis();
+        String vnp_OrderInfo = "Thanh toan don hang " + orderId;
+        String vnp_OrderType = "other";
+        String vnp_Locale = "vn";
+        String vnp_ReturnUrl = vnPayConfig.getReturnUrl();
+        String vnp_IpAddr = ipAddr;
+
+        java.util.Calendar cld = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("Etc/GMT+7"));
+        java.text.SimpleDateFormat formatter = new java.text.SimpleDateFormat("yyyyMMddHHmmss");
+        String vnp_CreateDate = formatter.format(cld.getTime());
+
+        Map<String, String> vnp_Params = new HashMap<>();
+        vnp_Params.put("vnp_Version", vnp_Version);
+        vnp_Params.put("vnp_Command", vnp_Command);
+        vnp_Params.put("vnp_TmnCode", vnp_TmnCode);
+        vnp_Params.put("vnp_Amount", String.valueOf(amount));
+        vnp_Params.put("vnp_CurrCode", vnp_CurrCode);
+        vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
+        vnp_Params.put("vnp_OrderInfo", vnp_OrderInfo);
+        vnp_Params.put("vnp_OrderType", vnp_OrderType);
+        vnp_Params.put("vnp_Locale", vnp_Locale);
+        vnp_Params.put("vnp_ReturnUrl", vnp_ReturnUrl);
+        vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
+        vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
+
+        List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder hashData = new StringBuilder();
+        StringBuilder query = new StringBuilder();
+        Iterator<String> itr = fieldNames.iterator();
+        while (itr.hasNext()) {
+            String fieldName = itr.next();
+            String fieldValue = vnp_Params.get(fieldName);
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                // Build hash data
+                hashData.append(fieldName);
+                hashData.append('=');
+                hashData.append(java.net.URLEncoder.encode(fieldValue, java.nio.charset.StandardCharsets.US_ASCII));
+                // Build query
+                query.append(java.net.URLEncoder.encode(fieldName, java.nio.charset.StandardCharsets.US_ASCII));
+                query.append('=');
+                query.append(java.net.URLEncoder.encode(fieldValue, java.nio.charset.StandardCharsets.US_ASCII));
+                if (itr.hasNext()) {
+                    query.append('&');
+                    hashData.append('&');
+                }
+            }
+        }
+        String queryUrl = query.toString();
+        String vnp_SecureHash = vnPayConfig.hmacSHA512(vnPayConfig.getHashSecret(), hashData.toString());
+        queryUrl += "&vnp_SecureHash=" + vnp_SecureHash;
+        return vnPayConfig.getApiUrl() + "?" + queryUrl;
+    }
+
+    @Override
+    public void processVNPayIpn(Map<String, String> params) {
+        String vnp_SecureHash = params.get("vnp_SecureHash");
+        params.remove("vnp_SecureHashType");
+        params.remove("vnp_SecureHash");
+
+        // Sort and hash
+        List<String> fieldNames = new ArrayList<>(params.keySet());
+        Collections.sort(fieldNames);
+        StringBuilder hashData = new StringBuilder();
+        Iterator<String> itr = fieldNames.iterator();
+        while (itr.hasNext()) {
+            String fieldName = itr.next();
+            String fieldValue = params.get(fieldName);
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                hashData.append(fieldName);
+                hashData.append('=');
+                hashData.append(java.net.URLEncoder.encode(fieldValue, java.nio.charset.StandardCharsets.US_ASCII));
+                if (itr.hasNext()) {
+                    hashData.append('&');
+                }
+            }
+        }
+
+        String calculatedHash = vnPayConfig.hmacSHA512(vnPayConfig.getHashSecret(), hashData.toString());
+        if (calculatedHash.equals(vnp_SecureHash)) {
+            if ("00".equals(params.get("vnp_ResponseCode"))) {
+                String txnRef = params.get("vnp_TxnRef");
+                Long orderId = Long.parseLong(txnRef.split("_")[0]);
+                long amount = Long.parseLong(params.get("vnp_Amount")) / 100;
+
+                Orders order = orderRepository.findById(orderId)
+                        .orElseThrow(() -> new ResouceNotFoundException("Order not found: " + orderId));
+
+                order.setStatus(OrderStatus.PAID);
+                orderRepository.save(order);
+
+                Payment payment = new Payment();
+                payment.setPaymentMethod("VNPAY");
+                payment.setAmount(amount);
+                payment.setTransactionCode(params.get("vnp_TransactionNo"));
+                payment.setOrders(order);
+                paymentRepository.save(payment);
+                System.out.println("VNPay IPN: Payment Successful for Order " + orderId);
+            } else {
+                System.err.println("VNPay IPN: Payment Failed with ResponseCode " + params.get("vnp_ResponseCode"));
+            }
+        } else {
+            System.err.println("VNPay IPN: Invalid Signature!");
         }
     }
 }
