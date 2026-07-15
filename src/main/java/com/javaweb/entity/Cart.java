@@ -9,6 +9,9 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import com.javaweb.enums.CartStatus;
 
 @Entity
 @Table(name = "carts") // Đã thêm 's' cho khớp với Database
@@ -24,6 +27,20 @@ public class Cart {
 	@Column(name = "created_at")
 	@CreationTimestamp
 	private Date createdAt;
+
+	@Column(name = "updated_at")
+	@UpdateTimestamp
+	private Date updatedAt;
+
+	@Column(name = "name")
+	private String name;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status")
+	private CartStatus status = CartStatus.ACTIVE;
+
+	@Column(name = "is_default")
+	private Boolean isDefault = false;
 	
 	@ManyToOne
 	@JoinColumn(name = "user_id")

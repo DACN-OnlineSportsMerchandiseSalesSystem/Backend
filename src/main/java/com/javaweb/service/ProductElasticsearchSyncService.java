@@ -4,10 +4,11 @@ import com.javaweb.document.ProductDocument;
 import com.javaweb.entity.Category;
 import com.javaweb.entity.Product;
 import com.javaweb.entity.ProductVariant;
-import com.javaweb.repository.ProductElasticsearchRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 public class ProductElasticsearchSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductElasticsearchSyncService.class);
-    private final ProductElasticsearchRepository esRepository;
+    private final ElasticsearchOperations elasticsearchOperations;
 
     /**
      * Đồng bộ thông tin sản phẩm từ MySQL sang Elasticsearch.
@@ -70,7 +71,8 @@ public class ProductElasticsearchSyncService {
                 doc.setPrice(0.0);
             }
 
-            esRepository.save(doc);
+            ensureProductIndexExists();
+            elasticsearchOperations.save(doc);
             log.info(">>> [Elasticsearch] Đã đồng bộ sản phẩm '{}' (ID={}) vào Elasticsearch.", p.getName(), p.getId());
         } catch (Exception e) {
             log.error("!!! [Elasticsearch] Lỗi khi đồng bộ sản phẩm ID={}: {}", p.getId(), e.getMessage());
@@ -82,10 +84,17 @@ public class ProductElasticsearchSyncService {
      */
     public void deleteProduct(Long id) {
         try {
-            esRepository.deleteById(id.toString());
+            elasticsearchOperations.delete(id.toString(), ProductDocument.class);
             log.info(">>> [Elasticsearch] Đã xóa sản phẩm ID={} khỏi Elasticsearch.", id);
         } catch (Exception e) {
             log.error("!!! [Elasticsearch] Lỗi khi xóa sản phẩm ID={} khỏi Elasticsearch: {}", id, e.getMessage());
+        }
+    }
+
+    private void ensureProductIndexExists() {
+        IndexOperations indexOperations = elasticsearchOperations.indexOps(ProductDocument.class);
+        if (!indexOperations.exists()) {
+            indexOperations.createWithMapping();
         }
     }
 }
