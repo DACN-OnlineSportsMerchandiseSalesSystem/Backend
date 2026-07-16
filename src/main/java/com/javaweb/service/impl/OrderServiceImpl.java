@@ -214,11 +214,6 @@ public class OrderServiceImpl implements OrderService {
 						throw new IllegalArgumentException(productName + " does not have enough stock. Requested: "
 								+ itemDto.getQuantity() + ", Available: " + availableStock);
 					}
-					if (availableStock < itemDto.getQuantity()) {
-						throw new RuntimeException("Sản phẩm " + variant.getProducts().getName() + " (Size: "
-								+ variant.getSize() + ") không đủ hàng trong kho! Cần: " + itemDto.getQuantity()
-								+ ", Còn: " + variant.getStockQuantity());
-					}
 					variant.setStockQuantity(availableStock - itemDto.getQuantity());
 					productVariantRepository.save(variant);
 
