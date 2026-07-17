@@ -29,12 +29,16 @@ public class SwaggerConfig {
             @Value("${open.api.version}") String version,
             @Value("${open.api.server.url}") String serverUrl,
             @Value("${open.api.server.description}") String serverDescription) {
+        
+        Server relativeServer = new Server().url("/").description("Default Server (Dynamic/Relative)");
+        Server devServer = new Server().url(serverUrl).description(serverDescription);
+
         return new OpenAPI().addSecurityItem(new SecurityRequirement().addList("Bearer Authentication"))
                 .components(new Components().addSecuritySchemes("Bearer Authentication", createAPIKeyScheme()))
                 .info(new Info()
                         .title(title)
                         .description(description)
                         .version(version))
-                .servers(List.of(new Server().url(serverUrl).description(serverDescription)));
+                .servers(List.of(relativeServer, devServer));
     }
 }

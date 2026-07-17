@@ -81,9 +81,9 @@ public class User {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
     private Set<Orders> orders = new HashSet<>();
 
-    // 4. Giỏ hàng (1 User chỉ có 1 Cart)
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private Cart cart; // Nhớ tạo file Cart.java
+    // 4. Giỏ hàng (1 User có nhiều Cart)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")
+    private Set<Cart> carts = new HashSet<>();
 
     // 5. Đánh giá (1 User viết nhiều Review)
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "user")

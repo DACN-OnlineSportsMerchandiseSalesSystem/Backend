@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Calendar;
 import com.javaweb.enums.OrderStatus;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -82,19 +83,34 @@ public class OrderServiceImpl implements OrderService {
 				userRepository.save(user);
 			}
 		}
+
+		// Logic hoàn trả kho và voucher khi Huỷ Đơn hàng (CANCELED)
+		if (status == OrderStatus.CANCELED && order.getStatus() != OrderStatus.CANCELED) {
+			// 1. Hoàn trả lại số lượng tồn kho (stockQuantity)
+			for (OrderItems item : order.getOrderItems()) {
+				ProductVariant variant = item.getProductVariants();
+				if (variant != null) {
+					variant.setStockQuantity(variant.getStockQuantity() + item.getQuantity());
+					productVariantRepository.save(variant);
+				}
+			}
+			// 2. Hoàn trả lại số lượt dùng voucher (nếu có)
+			Voucher voucher = order.getVoucher();
+			if (voucher != null) {
+				int newUsedCount = Math.max(0, voucher.getUsedCount() - 1);
+				voucher.setUsedCount(newUsedCount);
+				voucherRepository.save(voucher);
+			}
+		}
+
 		order.setStatus(status);
 		return mapToDTO(orderRepository.save(order));
 	}
 
 	@Override
 	public OrderDTO deleteOrder(Long id) {
-		Orders order = orderRepository.findById(id)
-				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
-		// Trong Thương Mại Điện Tử không bao giờ "Xóa Cứng" mất biên lai, ta chỉ Xóa
-		// Mềm (CANCELED)
-		order.setStatus(OrderStatus.CANCELED);
-		orderRepository.save(order);
-		return mapToDTO(order);
+		// Gọi hàm updateOrderStatus để khôi phục tồn kho và voucher tự động
+		return updateOrderStatus(id, OrderStatus.CANCELED);
 	}
 
 	@Override
@@ -134,9 +150,20 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@Transactional
 	public OrderDTO createOrder(OrderRequestDTO request, String userEmail) {
+		if (request == null) {
+			throw new IllegalArgumentException("Order request is required");
+		}
 		User user = userRepository.findByEmail(userEmail)
 				.orElseThrow(() -> new ResouceNotFoundException("User not found with email: " + userEmail));
+		boolean checkoutFromCart = request.getCartId() != null;
+		List<OrderItemRequestDTO> checkoutItems = checkoutFromCart
+				? cartService.getCheckoutItems(request.getCartId(), userEmail)
+				: request.getItems();
+		if (checkoutItems == null || checkoutItems.isEmpty()) {
+			throw new IllegalArgumentException("Checkout items are required");
+		}
 
 		Orders order = new Orders();
 		order.setUser(user);
@@ -165,8 +192,13 @@ public class OrderServiceImpl implements OrderService {
 		}
 
 		// 2. Map từng món hàng (OrderItemRequestDTO -> OrderItems)
-		if (request.getItems() != null) {
-			for (OrderItemRequestDTO itemDto : request.getItems()) {
+		for (OrderItemRequestDTO itemDto : checkoutItems) {
+				if (itemDto == null || itemDto.getProductVariantId() == null) {
+					throw new IllegalArgumentException("Product variant is required");
+				}
+				if (itemDto.getQuantity() <= 0) {
+					throw new IllegalArgumentException("Quantity must be greater than 0");
+				}
 				OrderItems item = new OrderItems();
 				item.setQuantity(itemDto.getQuantity());
 
@@ -176,12 +208,13 @@ public class OrderServiceImpl implements OrderService {
 									"Variant not found: " + itemDto.getProductVariantId()));
 
 					// KIỂM TRA VÀ TRỪ TỒN KHO
-					if (variant.getStockQuantity() < itemDto.getQuantity()) {
-						throw new RuntimeException("Sản phẩm " + variant.getProducts().getName() + " (Size: "
-								+ variant.getSize() + ") không đủ hàng trong kho! Cần: " + itemDto.getQuantity()
-								+ ", Còn: " + variant.getStockQuantity());
+					int availableStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+					if (availableStock < itemDto.getQuantity()) {
+						String productName = variant.getProducts() != null ? variant.getProducts().getName() : "Product";
+						throw new IllegalArgumentException(productName + " does not have enough stock. Requested: "
+								+ itemDto.getQuantity() + ", Available: " + availableStock);
 					}
-					variant.setStockQuantity(variant.getStockQuantity() - itemDto.getQuantity());
+					variant.setStockQuantity(availableStock - itemDto.getQuantity());
 					productVariantRepository.save(variant);
 
 					item.setProductVariants(variant);
@@ -198,7 +231,6 @@ public class OrderServiceImpl implements OrderService {
 				BigDecimal itemTotal = actualPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
 				total = total.add(itemTotal);
 			}
-		}
 
 		// 3. Xử lý Mã Giảm Giá (Voucher)
 		if (request.getVoucherCode() != null && !request.getVoucherCode().isEmpty()) {
@@ -279,11 +311,15 @@ public class OrderServiceImpl implements OrderService {
 
 		Orders savedOrder = orderRepository.save(order);
 
-		// 5. Xóa giỏ hàng sau khi tạo đơn thành công
-		try {
-			cartService.clearCart(userEmail);
-		} catch (Exception e) {
-			System.err.println("Không thể xóa giỏ hàng: " + e.getMessage());
+		// 5. Cập nhật cart sau khi tạo đơn thành công
+		if (checkoutFromCart) {
+			cartService.markCartCheckedOut(request.getCartId(), userEmail);
+		} else {
+			try {
+				cartService.clearCart(userEmail);
+			} catch (Exception e) {
+				System.err.println("Không thể xóa giỏ hàng: " + e.getMessage());
+			}
 		}
 
 		// Gửi Email thông báo bất đồng bộ
