@@ -108,7 +108,7 @@ public class AiConfig {
             // IF: Có cấu hình AI -> Sử dụng Cloud Embedding Model của Google (không tốn CPU/RAM local)
             return GoogleAiEmbeddingModel.builder()
                     .apiKey(getEffectiveApiKey())
-                    .modelName("text-embedding-004")
+                    .modelName("gemini-embedding-001")
                     .outputDimensionality(384)
                     .build();
         } else {

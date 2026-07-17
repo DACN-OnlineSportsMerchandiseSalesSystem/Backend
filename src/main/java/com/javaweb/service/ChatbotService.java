@@ -37,13 +37,20 @@ public class ChatbotService {
 
     private static final Logger log = LoggerFactory.getLogger(ChatbotService.class);
 
+    private static final Set<String> GENERIC_WORDS = new HashSet<>(Arrays.asList(
+        "giày", "chạy", "bộ", "nam", "nữ", "vợt", "bóng", "đá", "cầu", "lông", 
+        "thể", "thao", "chính", "hãng", "cao", "cấp", "nhẹ", "thoải", "mái", 
+        "băng", "khớp", "gối", "quần", "short", "áo", "thun", "dã", "ngoại", 
+        "kính", "bơi", "nhật", "bản", "bóng", "rổ"
+    ));
+
     private static final String SYSTEM_SPORTBOT =
             "Bạn là SportBot, trợ lý tư vấn khách hàng chuyên nghiệp của SportZone.\n" +
             "- TUYỆT ĐỐI CHỈ TƯ VẤN CÁC SẢN PHẨM CÓ THẬT TRONG [KIẾN THỨC BỔ SUNG], [THÔNG TIN SẢN PHẨM] HOẶC [THÔNG TIN TỪ HỆ THỐNG]. Nếu không tìm thấy thông tin trong các mục trên, BẮT BUỘC TRẢ LỜI: 'Hiện tại hệ thống không có thông tin về mẫu này.'. KHÔNG ĐƯỢC TỰ SUY DIỄN THÊM SẢN PHẨM HAY GIÁ BÊN NGOÀI.\n" +
             "- TUYỆT ĐỐI KHÔNG BỊA ĐẶT THÔNG TIN CHÍNH SÁCH HAY ĐỊA CHỈ. Nếu khách hỏi các vấn đề ngoài lề (như quán ăn, thời tiết...) hoặc chính sách, địa chỉ mà không có trong [KIẾN THỨC BỔ SUNG], BẮT BUỘC TRẢ LỜI: 'Hiện tại hệ thống không có thông tin về vấn đề này.' sau đó LỊCH SỰ DẪN DẮT KHÁCH HÀNG QUAY LẠI CHỦ ĐỀ CÁC SẢN PHẨM THỂ THAO.\n" +
             "- KHI BÁO GIÁ: HÃY LUÔN ƯU TIÊN SỬ DỤNG GIÁ TRONG [THÔNG TIN SẢN PHẨM] vì đó là giá khuyến mãi mới nhất. Nếu [THÔNG TIN SẢN PHẨM] có giá thấp hơn [KIẾN THỨC BỔ SUNG], hãy nói cho khách biết họ đang được giảm giá.\n" +
             "- VIẾT ĐÚNG VÀ ĐẦY ĐỦ TÊN SẢN PHẨM. Không được tự ý rút gọn tên (ví dụ: Pegasus 3S không được viết thành us 3S).\n" +
-            "- TRÌNH BÀY RÕ RÀNG: Bắt buộc trình bày mỗi sản phẩm trên một dòng riêng biệt theo định dạng: '- **[Tên sản phẩm đầy đủ]** - Giá: [Giá tiền]'. Nếu có mô tả thì viết tiếp vào cùng dòng. Tuyệt đối không để thừa dấu gạch ngang '-' ở cuối câu hoặc viết dính liền chữ.\n" +
+            "- TRÌNH BÀY RÕ RÀNG: Bắt buộc trình bày mỗi sản phẩm trên một dòng riêng biệt theo định dạng: '- **[Tên sản phẩm đầy đủ]** - Giá: [Giá tiền]'. Nếu có mô tả thì viết tiếp vào cùng dòng. Tuyệt đối không để thừa dấu gạch ngang '-' ở cuối câu hoặc viết dính liền chữ. Khi liệt kê các biến thể (size, màu sắc) của một sản phẩm, không được lặp lại tên sản phẩm ở mỗi dòng biến thể (chỉ ghi ví dụ: '- Màu Xám: Size 42, 43' hoặc '- Size 42, màu Xám').\n" +
             "- TUYỆT ĐỐI GIỮ NGUYÊN tên thương hiệu, tên sản phẩm tiếng Anh (Nike, Adidas, Yonex...). KHÔNG phiên âm.\n" +
             "- KHÔNG bắt đầu bằng 'Dựa trên thông tin...' hay 'Theo ngữ cảnh...'.\n" +
             "- Có thể dùng emoji phù hợp.\n\n" +
@@ -359,7 +366,7 @@ public class ChatbotService {
                             } else {
                                 String[] words = lowerName.split("\\s+");
                                 for (String w : words) {
-                                    if (w.length() >= 4 && lowerResponse.contains(w)) {
+                                    if (w.length() >= 4 && !GENERIC_WORDS.contains(w) && lowerResponse.contains(w)) {
                                         match = true;
                                         break;
                                     }
