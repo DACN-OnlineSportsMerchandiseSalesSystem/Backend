@@ -106,7 +106,8 @@ Mở Terminal tại thư mục dự án và thực hiện các lệnh sau:
     ```bash
     mvn spring-boot:run
     ```
-
+mvn clean spring-boot:run
+    ```
 Ứng dụng sẽ được khởi chạy tại cổng mặc định: **`http://localhost:8080`**
 
 ---

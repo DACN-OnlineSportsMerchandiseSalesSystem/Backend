@@ -78,11 +78,39 @@ public class TtsService {
         cleaned = cleaned.replaceAll("(?i)SportZone", "sờ pót dôn");
         cleaned = cleaned.replaceAll("(?i)SportBot", "sờ pót bót");
         
+        // 2.1 Cải thiện phát âm tên thương hiệu và tên sản phẩm khó đọc
+        cleaned = cleaned.replaceAll("(?i)Kamito", "Ka mi tô");
+        cleaned = cleaned.replaceAll("(?i)Artista", "A tít ta");
+        cleaned = cleaned.replaceAll("(?i)KL", "Ca Lờ");
+        cleaned = cleaned.replaceAll("(?i)TF", "Tê Ép");
+        cleaned = cleaned.replaceAll("(?i)Ultraboost", "Un tra bút");
+        cleaned = cleaned.replaceAll("(?i)Pegasus", "Pê ga sút");
+        cleaned = cleaned.replaceAll("(?i)Astrox", "Át trốc");
+        cleaned = cleaned.replaceAll("(?i)Lining", "Lai ning");
+        cleaned = cleaned.replaceAll("(?i)Yonex", "Yo nếch");
+        cleaned = cleaned.replaceAll("(?i)Victor", "Víc to");
+        cleaned = cleaned.replaceAll("(?i)Joola", "Du la");
+        cleaned = cleaned.replaceAll("(?i)Perseus", "Pơ sút");
+        cleaned = cleaned.replaceAll("(?i)Biti's", "Bi tít");
+        cleaned = cleaned.replaceAll("(?i)Quechua", "Két chua");
+        cleaned = cleaned.replaceAll("(?i)Decathlon", "Đê cát lông");
+        cleaned = cleaned.replaceAll("(?i)ProStyle", "Pro Stai");
+        cleaned = cleaned.replaceAll("(?i)Nike", "Nai kì");
+        cleaned = cleaned.replaceAll("(?i)Adidas", "A đi đát");
+        
         // 3. Thay thế TOÀN BỘ dấu gạch ngang (thường gặp trong phiên âm e-a, nai-ki) thành khoảng trắng
         cleaned = cleaned.replaceAll("-", " ");
         
+        // 3.1 Xóa phần mã sản phẩm dạng "(Mã: ...)" hoặc "Mã: ..." hoặc "Mã sản phẩm: ..."
+        cleaned = cleaned.replaceAll("(?i)\\(?\\s*mã\\s*(sản phẩm|sp)?\\s*:?\\s*[a-zA-Z0-9-]+\\s*\\)?", "");
+
+        // 3.2 Xóa phần thập phân .00 của giá tiền trước khi đọc
+        cleaned = cleaned.replaceAll("\\.00(?=\\s*(đ|₫|VND|vnd|đồng|nghìn|$))", "");
+        
+        // 3.3 Xóa dấu chấm phân tách trong các con số (ví dụ: 2.500.000 -> 2500000) để FPT.AI không đọc là "chấm"
+        cleaned = cleaned.replaceAll("(\\d)\\.(\\d)", "$1$2");
+        
         // 4. Xử lý thông minh các đơn vị đo lường/tiền tệ bị dính liền vào số (Ví dụ: 2.990.000đ -> 2.990.000 đồng, 260g -> 260 gam)
-        // Dùng \d kết hợp bắt nhóm để tránh lỗi Word Boundary (\b) không hoạt động với tiếng Việt
         cleaned = cleaned.replaceAll("(\\d)\\s*(đ|₫|VND|vnd)", "$1 đồng");
         cleaned = cleaned.replaceAll("(\\d)\\s*(k|K)(?=[\\s.,]|$)", "$1 nghìn"); // 100k -> 100 nghìn
         cleaned = cleaned.replaceAll("(\\d)\\s*(kg|Kg|KG)(?=[\\s.,]|$)", "$1 kí lô gam");
@@ -90,7 +118,7 @@ public class TtsService {
         cleaned = cleaned.replaceAll("(\\d)\\s*(cm|CM)(?=[\\s.,]|$)", "$1 xen ti mét");
         cleaned = cleaned.replaceAll("(\\d)\\s*(mm|MM)(?=[\\s.,]|$)", "$1 mi li mét");
         
-        // 4. Xử lý mã sản phẩm (Dấu gạch dưới)
+        // 4.1 Xử lý mã sản phẩm (Dấu gạch dưới)
         cleaned = cleaned.replaceAll("([a-zA-Z0-9])_([a-zA-Z0-9])", "$1 $2");
 
         // 5. GIẢI PHÁP MẠNH: Chỉ giữ lại Chữ cái (bao gồm Tiếng Việt), Số, Dấu chấm, Dấu phẩy, Khoảng trắng
