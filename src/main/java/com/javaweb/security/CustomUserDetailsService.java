@@ -32,7 +32,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             String roleName = user.getRole().getName().toUpperCase(); // Đảm bảo luôn viết hoa
             authority = new SimpleGrantedAuthority("ROLE_" + roleName);
         } else {
-            authority = new SimpleGrantedAuthority("ROLE_CUSTOMER");
+            authority = new SimpleGrantedAuthority("ROLE_" + AppRoles.CUSTOMER);
         }
 
         System.out.println(">>> Đã nạp quyền cho " + email + ": " + authority.getAuthority());

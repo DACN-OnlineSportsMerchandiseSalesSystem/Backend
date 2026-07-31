@@ -10,7 +10,7 @@ import java.util.List;
 public interface ReviewRepository extends JpaRepository<Review, Long> {
     // Kéo toàn bộ bình luận của một sản phẩm
     List<Review> findByProductsId(Long productId);
-    
+
     // Lấy 3 đánh giá có rating cụ thể mới nhất (Id giảm dần)
     List<Review> findTop3ByRatingOrderByIdDesc(int rating);
 }

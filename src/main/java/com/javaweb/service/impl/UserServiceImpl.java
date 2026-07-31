@@ -1,103 +1,92 @@
 package com.javaweb.service.impl;
 
-import com.javaweb.dto.*;
-import com.javaweb.entity.*;
-import com.javaweb.repository.UserRepository;
-import com.javaweb.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import com.javaweb.exception.*;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import com.javaweb.repository.RoleRepository;
+import com.javaweb.dto.CategoryDTO;
+import com.javaweb.dto.ChangePasswordRequestDTO;
+import com.javaweb.dto.UserDTO;
+import com.javaweb.dto.UserRequestDTO;
+import com.javaweb.entity.Category;
+import com.javaweb.entity.Role;
+import com.javaweb.entity.User;
 import com.javaweb.enums.UserStatus;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.javaweb.exception.BadRequestException;
+import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.CategoryRepository;
+import com.javaweb.repository.RoleRepository;
+import com.javaweb.repository.UserRepository;
+import com.javaweb.security.AppRoles;
+import com.javaweb.service.UserService;
+import jakarta.persistence.criteria.JoinType;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-    // Inject thêm RoleRepository để gán Quyền lúc tạo User
     private final RoleRepository roleRepository;
-    // Inject cỗ máy băm mật khẩu
     private final PasswordEncoder passwordEncoder;
     private final CategoryRepository categoryRepository;
 
     @Override
     public List<UserDTO> getAllUsers() {
-        // Lấy tất cả User từ MySQL
-        List<User> users = userRepository.findAll();
+        return getUsers(null, null, null);
+    }
 
-        // Tạo một cái giỏ rỗng để chứa DTO
-        List<UserDTO> userDTOs = new ArrayList<>();
+    @Override
+    public List<UserDTO> getUsers(String search, UserStatus status, String roleName) {
+        Specification<User> spec = Specification.where(null);
 
-        // Đổ dữ liệu từ Entity sang DTO
-        for (User user : users) {
-            UserDTO dto = new UserDTO();
-            dto.setId(user.getId());
-            dto.setFirstName(user.getFirstName());
-            dto.setLastName(user.getLastName());
-            dto.setEmail(user.getEmail());
-            dto.setPhone(user.getPhone());
-            dto.setStatus(user.getStatus());
-            dto.setGender(user.getGender());
-            dto.setBirthDate(user.getBirthDate());
-            dto.setLevel(user.getLevel());
-            dto.setRank(user.getRank());
-            // Xử lý cẩn thận cái Role (Kiểm tra null để tránh lỗi NullPointerException)
-            if (user.getRole() != null) {
-                dto.setRoleName(user.getRole().getName());
-            }
-
-            userDTOs.add(dto);
+        if (search != null && !search.trim().isEmpty()) {
+            String keyword = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("email")), keyword),
+                    cb.like(cb.lower(root.get("phone")), keyword),
+                    cb.like(cb.lower(root.get("firstName")), keyword),
+                    cb.like(cb.lower(root.get("lastName")), keyword)
+            ));
         }
 
-        return userDTOs;
+        if (status != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("status"), status));
+        }
+
+        if (roleName != null && !roleName.trim().isEmpty()) {
+            String normalizedRole = roleName.trim().toUpperCase(Locale.ROOT);
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(cb.upper(root.join("role", JoinType.LEFT).get("name")), normalizedRole));
+        }
+
+        return userRepository.findAll(spec).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
     public UserDTO getUserById(Long id) {
-        User user = userRepository.findById(id).orElse(null);
-
-        if (user == null) {
-            throw new ResouceNotFoundException("User not found with id: " + id); // Tốt nhất sau này nên ném ra một
-                                                                                 // Custom Exception như
-                                                                                 // UserNotFoundException
-        }
-
-        // Chuyển Entity sang DTO
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhone(user.getPhone());
-        dto.setStatus(user.getStatus());
-        dto.setGender(user.getGender());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setLevel(user.getLevel());
-        dto.setRank(user.getRank());
-        if (user.getRole() != null) {
-            dto.setRoleName(user.getRole().getName());
-        }
-
-        return dto;
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
+        return toDTO(user);
     }
 
     @Override
     public UserDTO createUser(UserRequestDTO request) {
+        if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
+            throw new IllegalArgumentException("email is required");
+        }
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BadRequestException("email");
         }
-        if (userRepository.existsByPhone(request.getPhone())) {
+        if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
             throw new BadRequestException("phone");
         }
-        if (request.getPassword().length() < 6) {
+        if (request.getPassword() == null || request.getPassword().length() < 6) {
             throw new BadRequestException("password");
         }
 
@@ -106,55 +95,42 @@ public class UserServiceImpl implements UserService {
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
-        if (request.getGender() != null) {
-            user.setGender(request.getGender());
-        }
-        if (request.getBirthDate() != null) {
-            user.setBirthDate(request.getBirthDate());
-        }
-
-        // Cực kì quan trọng: Băm mật khẩu ra thành chuỗi mã hóa trước khi cho vào DB
+        user.setGender(request.getGender());
+        user.setBirthDate(request.getBirthDate());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setStatus(UserStatus.ACTIVE);
 
         if (request.getRoleName() != null) {
-            Role role = roleRepository.findByName(request.getRoleName()).orElseGet(() -> {
-                Role newRole = new com.javaweb.entity.Role();
-                newRole.setName(request.getRoleName());
-                return roleRepository.save(newRole);
-            });
-            user.setRole(role);
+            user.setRole(resolveRole(request.getRoleName()));
         }
 
-        user = userRepository.save(user);
-
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhone(user.getPhone());
-        dto.setGender(user.getGender());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setStatus(user.getStatus());
-        dto.setLevel(user.getLevel());
-        dto.setRank(user.getRank());
-        if (user.getRole() != null) {
-            dto.setRoleName(user.getRole().getName());
-        }
-        return dto;
+        return toDTO(userRepository.save(user));
     }
 
     @Override
     public UserDTO updateUser(Long id, UserRequestDTO request) {
-        User user = userRepository.findById(id).orElse(null);
-        if (user == null) {
-            throw new ResouceNotFoundException("User not found with id: " + id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
+
+        if (request.getEmail() != null && userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
+            throw new BadRequestException("email");
         }
-        user.setFirstName(request.getFirstName());
-        user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
+        if (request.getPhone() != null && userRepository.existsByPhoneAndIdNot(request.getPhone(), id)) {
+            throw new BadRequestException("phone");
+        }
+
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName());
+        }
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
         if (request.getGender() != null) {
             user.setGender(request.getGender());
         }
@@ -162,55 +138,45 @@ public class UserServiceImpl implements UserService {
             user.setBirthDate(request.getBirthDate());
         }
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            if (request.getPassword().length() < 6) {
+                throw new BadRequestException("password");
+            }
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
-        user.setStatus(request.getStatus());
+        if (request.getStatus() != null) {
+            user.setStatus(request.getStatus());
+        }
         if (request.getRoleName() != null) {
-            com.javaweb.entity.Role role = roleRepository.findByName(request.getRoleName()).orElseGet(() -> {
-                com.javaweb.entity.Role newRole = new com.javaweb.entity.Role();
-                newRole.setName(request.getRoleName());
-                return roleRepository.save(newRole);
-            });
-            user.setRole(role);
+            user.setRole(resolveRole(request.getRoleName()));
         }
-        user = userRepository.save(user);
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhone(user.getPhone());
-        dto.setGender(user.getGender());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setStatus(user.getStatus());
-        dto.setLevel(user.getLevel());
-        dto.setRank(user.getRank());
-        if (user.getRole() != null) {
-            dto.setRoleName(user.getRole().getName());
+
+        return toDTO(userRepository.save(user));
+    }
+
+    @Override
+    public UserDTO updateUserStatus(Long id, UserStatus status) {
+        if (status == null) {
+            throw new IllegalArgumentException("status is required");
         }
-        return dto;
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
+        user.setStatus(status);
+        return toDTO(userRepository.save(user));
+    }
+
+    @Override
+    public UserDTO updateUserRole(Long id, String roleName) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
+        user.setRole(resolveRole(roleName));
+        return toDTO(userRepository.save(user));
     }
 
     @Override
     public UserDTO getMyProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
-                
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhone(user.getPhone());
-        dto.setStatus(user.getStatus());
-        dto.setGender(user.getGender());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setLevel(user.getLevel());
-        dto.setRank(user.getRank());
-        if (user.getRole() != null) {
-            dto.setRoleName(user.getRole().getName());
-        }
-        return dto;
+        return toDTO(user);
     }
 
     @Override
@@ -218,30 +184,26 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
 
-        // Chỉ cho phép cập nhật thông tin cơ bản, chặn thay đổi Status và Role
-        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
-        if (request.getLastName() != null) user.setLastName(request.getLastName());
-        if (request.getPhone() != null) user.setPhone(request.getPhone());
-        if (request.getGender() != null) user.setGender(request.getGender());
-        if (request.getBirthDate() != null) user.setBirthDate(request.getBirthDate());
- 
-        user = userRepository.save(user);
- 
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhone(user.getPhone());
-        dto.setGender(user.getGender());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setStatus(user.getStatus());
-        dto.setLevel(user.getLevel());
-        dto.setRank(user.getRank());
-        if (user.getRole() != null) {
-            dto.setRoleName(user.getRole().getName());
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
         }
-        return dto;
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName());
+        }
+        if (request.getPhone() != null) {
+            if (userRepository.existsByPhoneAndIdNot(request.getPhone(), user.getId())) {
+                throw new BadRequestException("phone");
+            }
+            user.setPhone(request.getPhone());
+        }
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getBirthDate() != null) {
+            user.setBirthDate(request.getBirthDate());
+        }
+
+        return toDTO(userRepository.save(user));
     }
 
     @Override
@@ -249,24 +211,21 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
 
-        // Kiểm tra mật khẩu cũ
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new RuntimeException("Mật khẩu hiện tại không chính xác!");
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
+            throw new BadRequestException("password");
         }
 
-        // Mã hóa và lưu mật khẩu mới
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
 
     @Override
     public void deleteUser(Long id) {
-        User user = userRepository.findById(id).orElse(null);
-        if (user == null) {
-            throw new ResouceNotFoundException("User not found with id: " + id);
-        }
-
-        // không thể xoá thằng dữ liệu bằng cách deletebyid được
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
     }
@@ -313,5 +272,38 @@ public class UserServiceImpl implements UserService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    private Role resolveRole(String roleName) {
+        if (roleName == null || roleName.trim().isEmpty()) {
+            throw new IllegalArgumentException("roleName is required");
+        }
+        String normalizedRole = roleName.trim().toUpperCase(Locale.ROOT);
+        if (!AppRoles.isAllowed(normalizedRole)) {
+            throw new IllegalArgumentException("Unsupported roleName. Allowed values: CUSTOMER, ADMIN, IT_ADMIN");
+        }
+        return roleRepository.findByNameIgnoreCase(normalizedRole).orElseGet(() -> {
+            Role newRole = new Role();
+            newRole.setName(normalizedRole);
+            return roleRepository.save(newRole);
+        });
+    }
+
+    private UserDTO toDTO(User user) {
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setStatus(user.getStatus());
+        dto.setGender(user.getGender());
+        dto.setBirthDate(user.getBirthDate());
+        dto.setLevel(user.getLevel());
+        dto.setRank(user.getRank());
+        if (user.getRole() != null) {
+            dto.setRoleName(user.getRole().getName());
+        }
+        return dto;
     }
 }

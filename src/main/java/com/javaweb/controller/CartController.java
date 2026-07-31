@@ -3,9 +3,13 @@ package com.javaweb.controller;
 import com.javaweb.dto.AddCartRequestDTO;
 import com.javaweb.dto.CartDTO;
 import com.javaweb.dto.CreateCartRequestDTO;
+import com.javaweb.dto.OrderDTO;
+import com.javaweb.dto.OrderRequestDTO;
+import com.javaweb.dto.UpdateCartItemRequestDTO;
 import com.javaweb.dto.UpdateCartRequestDTO;
 import com.javaweb.enums.CartStatus;
 import com.javaweb.service.CartService;
+import com.javaweb.service.OrderService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -26,6 +30,7 @@ import java.util.List;
 public class CartController {
 
     private final CartService cartService;
+    private final OrderService orderService;
 
     private String getCurrentUserEmail() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
@@ -102,8 +107,9 @@ public class CartController {
             @Parameter(description = "ID of the cart item to update", example = "1", required = true)
             @PathVariable Long itemId,
             @Parameter(description = "New quantity for the item", example = "2", required = true)
-            @RequestParam Integer quantity) {
-        CartDTO updatedCart = cartService.updateCartItemQuantity(itemId, quantity, getCurrentUserEmail());
+            @RequestParam(required = false) Integer quantity,
+            @RequestBody(required = false) UpdateCartItemRequestDTO request) {
+        CartDTO updatedCart = cartService.updateCartItemQuantity(itemId, resolveQuantity(quantity, request), getCurrentUserEmail());
         return ResponseEntity.ok(updatedCart);
     }
 
@@ -112,8 +118,9 @@ public class CartController {
     public ResponseEntity<CartDTO> updateCartItem(
             @PathVariable Long cartId,
             @PathVariable Long itemId,
-            @RequestParam Integer quantity) {
-        CartDTO updatedCart = cartService.updateCartItemQuantity(cartId, itemId, quantity, getCurrentUserEmail());
+            @RequestParam(required = false) Integer quantity,
+            @RequestBody(required = false) UpdateCartItemRequestDTO request) {
+        CartDTO updatedCart = cartService.updateCartItemQuantity(cartId, itemId, resolveQuantity(quantity, request), getCurrentUserEmail());
         return ResponseEntity.ok(updatedCart);
     }
 
@@ -154,5 +161,27 @@ public class CartController {
     public ResponseEntity<Void> clearCart(@PathVariable Long cartId) {
         cartService.clearCart(cartId, getCurrentUserEmail());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{cartId}/checkout")
+    @Operation(summary = "Checkout a cart", description = "Create an order from all items in a specific active cart.")
+    public ResponseEntity<OrderDTO> checkoutCart(@PathVariable Long cartId, @RequestBody(required = false) OrderRequestDTO request) {
+        OrderRequestDTO checkoutRequest = request != null ? request : new OrderRequestDTO();
+        if (checkoutRequest.getCartId() != null && !checkoutRequest.getCartId().equals(cartId)) {
+            throw new IllegalArgumentException("Cart ID in path and request body must match");
+        }
+        checkoutRequest.setCartId(cartId);
+        OrderDTO createdOrder = orderService.createOrder(checkoutRequest, getCurrentUserEmail());
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdOrder);
+    }
+
+    private Integer resolveQuantity(Integer queryQuantity, UpdateCartItemRequestDTO request) {
+        if (queryQuantity != null) {
+            return queryQuantity;
+        }
+        if (request != null && request.getQuantity() != null) {
+            return request.getQuantity();
+        }
+        throw new IllegalArgumentException("Quantity is required");
     }
 }

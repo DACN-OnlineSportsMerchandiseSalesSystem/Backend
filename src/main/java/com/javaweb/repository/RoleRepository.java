@@ -11,4 +11,6 @@ public interface RoleRepository extends JpaRepository<Role, Integer> {
     // Hàm này cực kỳ quan trọng để check quyền khi User đăng nhập
     // Ví dụ: findByName([admin, IT admin, user])
     Optional<Role> findByName(String name);
+
+    Optional<Role> findByNameIgnoreCase(String name);
 }

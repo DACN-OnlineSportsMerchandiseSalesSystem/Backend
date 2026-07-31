@@ -16,6 +16,7 @@ import java.util.Date;
 //springframework
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.format.annotation.DateTimeFormat;
 import com.javaweb.enums.OrderStatus;
@@ -42,7 +43,7 @@ public class OrderController {
     // HTTP GET: Tuyến đường Dành riêng cho ADMIN để xem toàn bộ Đơn hàng trên hệ
     // thống
     @GetMapping("/all")
-    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Get all system orders", description = "Admin only. Retrieve a comprehensive list of all orders. Supports status filtering, date range query, and keyword search.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved orders list"),
@@ -91,6 +92,7 @@ public class OrderController {
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Update order status", description = "Modify the processing status of an existing order (e.g. shipping status).")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Order status updated successfully"),
@@ -105,6 +107,7 @@ public class OrderController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cancel or delete an order", description = "Permanently delete or cancel an order from the database system by its unique ID.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "240", description = "Order deleted successfully"),

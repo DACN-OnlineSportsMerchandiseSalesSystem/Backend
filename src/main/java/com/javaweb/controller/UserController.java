@@ -1,6 +1,7 @@
 package com.javaweb.controller;
 
 import com.javaweb.dto.*;
+import com.javaweb.enums.UserStatus;
 import com.javaweb.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -93,18 +94,21 @@ public class UserController {
     // NHÓM API DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)
     // ==========================================
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','IT_ADMIN')")
     @GetMapping
     @Operation(summary = "Get all users list", description = "Admin only. Retrieve details of all registered users in the database system.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved all users list"),
         @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role")
     })
-    public ResponseEntity<List<UserDTO>> getAll() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDTO>> getAll(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UserStatus status,
+            @RequestParam(required = false) String roleName) {
+        return ResponseEntity.ok(userService.getUsers(search, status, roleName));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','IT_ADMIN')")
     @GetMapping("/{id}")
     @Operation(summary = "Get a single user by ID", description = "Admin only. Retrieve complete details of a specific user using their unique database ID.")
     @ApiResponses(value = {
@@ -122,7 +126,7 @@ public class UserController {
         return ResponseEntity.ok(userDTO);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','IT_ADMIN')")
     @PostMapping
     @Operation(summary = "Create a new user profile", description = "Admin only. Directly register a new user or administrative staff into the system database.")
     @ApiResponses(value = {
@@ -135,7 +139,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.CREATED).body(newUser);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','IT_ADMIN')")
     @PutMapping("/{id}")
     @Operation(summary = "Update user details by ID", description = "Admin only. Edit profiles or update specific settings of any user in the system.")
     @ApiResponses(value = {
@@ -151,7 +155,37 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','IT_ADMIN')")
+    @PatchMapping("/{id}/status")
+    @Operation(summary = "Update user status", description = "Admin only. Change account status, such as ACTIVE, INACTIVE, BANNED, or LOCKED.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User status updated successfully"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
+        @ApiResponse(responseCode = "404", description = "User not found with the given ID")
+    })
+    public ResponseEntity<UserDTO> updateStatus(
+            @Parameter(description = "Unique ID of the user profile to edit", example = "1", required = true)
+            @PathVariable Long id,
+            @RequestParam UserStatus status) {
+        return ResponseEntity.ok(userService.updateUserStatus(id, status));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','IT_ADMIN')")
+    @PatchMapping("/{id}/role")
+    @Operation(summary = "Update user role", description = "Admin only. Change account role, such as CUSTOMER, ADMIN, or IT_ADMIN.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "User role updated successfully"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires ADMIN role"),
+        @ApiResponse(responseCode = "404", description = "User not found with the given ID")
+    })
+    public ResponseEntity<UserDTO> updateRole(
+            @Parameter(description = "Unique ID of the user profile to edit", example = "1", required = true)
+            @PathVariable Long id,
+            @RequestParam String roleName) {
+        return ResponseEntity.ok(userService.updateUserRole(id, roleName));
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','IT_ADMIN')")
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete or ban user profile", description = "Admin only. Delete or deactivate a user account permanently from the database.")
     @ApiResponses(value = {
