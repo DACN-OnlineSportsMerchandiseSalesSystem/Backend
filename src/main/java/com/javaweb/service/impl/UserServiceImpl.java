@@ -15,11 +15,16 @@ import com.javaweb.repository.RoleRepository;
 import com.javaweb.repository.UserRepository;
 import com.javaweb.security.AppRoles;
 import com.javaweb.service.UserService;
+import com.javaweb.service.AuditLogService;
 import jakarta.persistence.criteria.JoinType;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.List;
 import java.util.Locale;
@@ -33,6 +38,7 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final CategoryRepository categoryRepository;
+    private final AuditLogService auditLogService;
 
     @Override
     public List<UserDTO> getAllUsers() {
@@ -160,16 +166,60 @@ public class UserServiceImpl implements UserService {
         }
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
+
+        String currentActorEmail = SecurityContextHolder.getContext().getAuthentication() != null
+                ? SecurityContextHolder.getContext().getAuthentication().getName()
+                : "SYSTEM";
+
+        if (user.getEmail().equalsIgnoreCase(currentActorEmail) && status != UserStatus.ACTIVE) {
+            throw new BadRequestException("You cannot deactivate or lock your own account.");
+        }
+
+        String oldValue = user.getStatus() != null ? user.getStatus().name() : "NONE";
         user.setStatus(status);
-        return toDTO(userRepository.save(user));
+        User saved = userRepository.save(user);
+
+        auditLogService.recordLog(
+                currentActorEmail,
+                "UPDATE_USER_STATUS",
+                "USER",
+                user.getId().toString(),
+                oldValue,
+                status.name(),
+                getClientIp()
+        );
+
+        return toDTO(saved);
     }
 
     @Override
     public UserDTO updateUserRole(Long id, String roleName) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
+
+        String currentActorEmail = SecurityContextHolder.getContext().getAuthentication() != null
+                ? SecurityContextHolder.getContext().getAuthentication().getName()
+                : "SYSTEM";
+
+        if (user.getEmail().equalsIgnoreCase(currentActorEmail)) {
+            throw new BadRequestException("You cannot modify your own role.");
+        }
+
+        String oldValue = user.getRole() != null ? user.getRole().getName() : "NONE";
         user.setRole(resolveRole(roleName));
-        return toDTO(userRepository.save(user));
+        User saved = userRepository.save(user);
+
+        auditLogService.recordLog(
+                currentActorEmail,
+                "CHANGE_USER_ROLE",
+                "USER",
+                user.getId().toString(),
+                oldValue,
+                roleName.trim().toUpperCase(Locale.ROOT),
+                getClientIp()
+        );
+
+        return toDTO(saved);
     }
 
     @Override
@@ -226,8 +276,28 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found with id: " + id));
+
+        String currentActorEmail = SecurityContextHolder.getContext().getAuthentication() != null
+                ? SecurityContextHolder.getContext().getAuthentication().getName()
+                : "SYSTEM";
+
+        if (user.getEmail().equalsIgnoreCase(currentActorEmail)) {
+            throw new BadRequestException("You cannot delete your own account.");
+        }
+
+        String oldValue = user.getStatus() != null ? user.getStatus().name() : "NONE";
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
+
+        auditLogService.recordLog(
+                currentActorEmail,
+                "DELETE_USER",
+                "USER",
+                user.getId().toString(),
+                oldValue,
+                UserStatus.INACTIVE.name(),
+                getClientIp()
+        );
     }
 
     @Override
@@ -305,5 +375,14 @@ public class UserServiceImpl implements UserService {
             dto.setRoleName(user.getRole().getName());
         }
         return dto;
+    }
+
+    private String getClientIp() {
+        try {
+            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+            return request.getRemoteAddr();
+        } catch (Exception e) {
+            return "UNKNOWN";
+        }
     }
 }

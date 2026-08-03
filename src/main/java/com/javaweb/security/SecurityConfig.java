@@ -77,6 +77,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/orders/all/**").hasRole("ADMIN")
                 .requestMatchers("/api/orders/*/status").hasRole("ADMIN")
                 
+                // Phân quyền chi tiết cho IT Admin
+                .requestMatchers("/actuator/**").hasRole("IT_ADMIN")
+                .requestMatchers("/api/admin/system/**").hasRole("IT_ADMIN")
+                
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
