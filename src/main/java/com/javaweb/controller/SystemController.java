@@ -34,6 +34,9 @@ public class SystemController {
     private final RedisConnectionFactory redisConnectionFactory;
     private final ElasticsearchOperations elasticsearchOperations;
     private final AuditLogService auditLogService;
+    private final com.javaweb.repository.ProductRepository productRepository;
+    private final com.javaweb.repository.BlogRepository blogRepository;
+    private final com.javaweb.repository.StorePolicyRepository storePolicyRepository;
 
     @Value("${chroma.base-url:http://localhost:8000/}")
     private String chromaBaseUrl;
@@ -129,5 +132,33 @@ public class SystemController {
     })
     public ResponseEntity<List<AuditLog>> getAuditLogs() {
         return ResponseEntity.ok(auditLogService.getAllLogs());
+    }
+
+    @PostMapping("/reset-vector")
+    @Operation(summary = "Reset AI vector status", description = "IT Admin only. Marks all products, blogs, and store policies to be re-embedded into the Vector database.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully marked items for re-embedding"),
+        @ApiResponse(responseCode = "403", description = "Forbidden - Requires IT_ADMIN role")
+    })
+    public ResponseEntity<String> resetVector() {
+        productRepository.resetVectorStatus();
+        blogRepository.resetVectorStatus();
+        storePolicyRepository.resetVectorStatus();
+
+        String currentActorEmail = SecurityContextHolder.getContext().getAuthentication() != null
+                ? SecurityContextHolder.getContext().getAuthentication().getName()
+                : "SYSTEM";
+
+        auditLogService.recordLog(
+                currentActorEmail,
+                "RESET_VECTOR",
+                "SYSTEM",
+                "N/A",
+                "N/A",
+                "ALL ITEMS MARKED FOR RE-EMBEDDING",
+                null
+        );
+
+        return ResponseEntity.ok("OK! All items are marked for re-embedding into the fresh Vector DB.");
     }
 }

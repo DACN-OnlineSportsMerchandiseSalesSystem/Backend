@@ -7,5 +7,6 @@ import lombok.Setter;
 @Setter
 public class UpdateCartRequestDTO {
     private String name;
+    @com.fasterxml.jackson.annotation.JsonProperty("isDefault")
     private Boolean isDefault;
 }

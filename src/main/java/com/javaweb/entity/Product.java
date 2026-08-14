@@ -66,4 +66,10 @@ public class Product { // Tên Class KHÔNG CÓ 's'
 
     @Column(name = "is_vectorized")
     private Boolean isVectorized = false;
+
+    @Column(name = "is_combo")
+    private Boolean isCombo = false;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "comboProduct", orphanRemoval = true)
+    private Set<ComboItem> comboItems = new HashSet<>();
 }

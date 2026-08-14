@@ -68,6 +68,13 @@ public class CartController {
     @PatchMapping("/{cartId}")
     @Operation(summary = "Update cart", description = "Update cart name or set it as default.")
     public ResponseEntity<CartDTO> updateCart(@PathVariable Long cartId, @RequestBody UpdateCartRequestDTO request) {
+        System.out.println(">>> [DEBUG] updateCart called for cartId: " + cartId);
+        if (request != null) {
+            System.out.println(">>> [DEBUG] request name: " + request.getName());
+            System.out.println(">>> [DEBUG] request isDefault: " + request.getIsDefault());
+        } else {
+            System.out.println(">>> [DEBUG] request is null");
+        }
         return ResponseEntity.ok(cartService.updateCart(cartId, request, getCurrentUserEmail()));
     }
 

@@ -52,6 +52,7 @@ public class ProductServiceImpl implements ProductService {
     private final DiscountRepository discountRepository;
     private final ProductImageRepository productImageRepository;
     private final ProductVariantRepository productVariantRepository;
+    private final com.javaweb.repository.ComboItemRepository comboItemRepository;
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> embeddingStore;
     private final ProductVectorSyncService vectorSyncService;
@@ -232,62 +233,113 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // Cập nhật ảnh
-        if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
-            if (product.getProductImages() == null) product.setProductImages(new HashSet<>());
-            product.getProductImages().clear(); // Nhờ orphanRemoval = true nên sẽ xóa trong DB
-            
+        if (product.getProductImages() == null) {
+            product.setProductImages(new HashSet<>());
+        }
+        product.getProductImages().clear();
+
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            boolean isFirst = true;
+            for (String url : request.getImageUrls()) {
+                if (url != null && !url.trim().isEmpty()) {
+                    ProductImage newImg = new ProductImage();
+                    newImg.setImageUrl(url.trim());
+                    newImg.setIsThumbnail(isFirst);
+                    newImg.setProducts(product);
+                    product.getProductImages().add(newImg);
+                    isFirst = false;
+                }
+            }
+        } else if (request.getImageUrl() != null && !request.getImageUrl().isEmpty()) {
             ProductImage newImg = new ProductImage();
-            newImg.setImageUrl(request.getImageUrl());
+            newImg.setImageUrl(request.getImageUrl().trim());
             newImg.setIsThumbnail(true);
             newImg.setProducts(product);
             product.getProductImages().add(newImg);
         }
 
-        // Cập nhật biến thể
+        // Cập nhật biến thể và Combo
+        product.setIsCombo(request.getIsCombo() != null ? request.getIsCombo() : false);
         if (product.getProductVariants() == null) product.setProductVariants(new HashSet<>());
         product.getProductVariants().clear();
 
-        List<String> colors = (request.getColors() != null && !request.getColors().isEmpty()) ? request.getColors() : List.of("Default");
-        List<String> sizes = (request.getSizes() != null && !request.getSizes().isEmpty()) ? request.getSizes() : List.of("Default");
+        if (product.getIsCombo()) {
+            // Tạo 1 biến thể mặc định đại diện cho Combo
+            ProductVariant variant = new ProductVariant();
+            variant.setColor("Default");
+            variant.setSize("Default");
+            variant.setOriginalPrice(request.getOriginalPrice());
+            variant.setDiscount(0);
+            variant.setPrice(request.getOriginalPrice()); // Giá bán combo chính là originalPrice
+            variant.setStockQuantity(0); // Tồn kho sẽ tính động khi get
+            variant.setProducts(product);
 
-        // Xây dựng lookup map tồn kho theo từng biến thể: "COLOR|SIZE" -> stockQuantity
-        Map<String, Integer> variantStockMap = new HashMap<>();
-        if (request.getVariantStocks() != null && !request.getVariantStocks().isEmpty()) {
-            for (com.javaweb.dto.VariantStockDTO vs : request.getVariantStocks()) {
-                if (vs.getColor() != null && vs.getSize() != null) {
-                    variantStockMap.put(vs.getColor().trim() + "|" + vs.getSize().trim(), vs.getStockQuantity() != null ? vs.getStockQuantity() : 0);
+            String baseCode = (product.getProductCode() != null && !product.getProductCode().isEmpty()) ? product.getProductCode() : "P" + (product.getId() != null ? product.getId() : "NEW");
+            String sku = baseCode + "-COMBO-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+            variant.setSkuCode(sku);
+
+            product.getProductVariants().add(variant);
+
+            // Cập nhật các sản phẩm con trong Combo
+            if (product.getComboItems() == null) product.setComboItems(new HashSet<>());
+            product.getComboItems().clear();
+
+            if (request.getComboItems() != null) {
+                for (com.javaweb.dto.ComboItemDTO itemDto : request.getComboItems()) {
+                    if (itemDto.getProductVariantId() != null) {
+                        ProductVariant childVariant = productVariantRepository.findById(itemDto.getProductVariantId())
+                                .orElseThrow(() -> new ResouceNotFoundException("Product variant in combo not found: " + itemDto.getProductVariantId()));
+                        
+                        com.javaweb.entity.ComboItem comboItem = new com.javaweb.entity.ComboItem();
+                        comboItem.setComboProduct(product);
+                        comboItem.setProductVariant(childVariant);
+                        comboItem.setQuantity(itemDto.getQuantity() != null ? itemDto.getQuantity() : 1);
+                        product.getComboItems().add(comboItem);
+                    }
                 }
             }
-        }
+        } else {
+            // Cập nhật biến thể cho sản phẩm thường
+            List<String> colors = (request.getColors() != null && !request.getColors().isEmpty()) ? request.getColors() : List.of("Default");
+            List<String> sizes = (request.getSizes() != null && !request.getSizes().isEmpty()) ? request.getSizes() : List.of("Default");
 
-        int counter = 1;
-        for (String c : colors) {
-            for (String s : sizes) {
-                ProductVariant variant = new ProductVariant();
-                variant.setColor(c);
-                variant.setSize(s);
-                variant.setOriginalPrice(request.getOriginalPrice());
-                variant.setDiscount(request.getDiscount());
-                if (request.getOriginalPrice() != null) {
-                    int disc = request.getDiscount() != null ? request.getDiscount() : 0;
-                    BigDecimal price = request.getOriginalPrice().multiply(BigDecimal.valueOf(100 - disc)).divide(BigDecimal.valueOf(100));
-                    variant.setPrice(price);
+            // Xây dựng lookup map tồn kho theo từng biến thể: "COLOR|SIZE" -> stockQuantity
+            Map<String, Integer> variantStockMap = new HashMap<>();
+            if (request.getVariantStocks() != null && !request.getVariantStocks().isEmpty()) {
+                for (com.javaweb.dto.VariantStockDTO vs : request.getVariantStocks()) {
+                    if (vs.getColor() != null && vs.getSize() != null) {
+                        variantStockMap.put(vs.getColor().trim() + "|" + vs.getSize().trim(), vs.getStockQuantity() != null ? vs.getStockQuantity() : 0);
+                    }
                 }
+            }
 
-                // Ưu tiên tồn kho riêng theo biến thể, fallback về stockQuantity chung
-                String key = c.trim() + "|" + s.trim();
-                Integer stock = variantStockMap.getOrDefault(key,
-                    request.getStockQuantity() != null ? request.getStockQuantity() : 0);
-                variant.setStockQuantity(stock);
+            for (String c : colors) {
+                for (String s : sizes) {
+                    ProductVariant variant = new ProductVariant();
+                    variant.setColor(c);
+                    variant.setSize(s);
+                    variant.setOriginalPrice(request.getOriginalPrice());
+                    variant.setDiscount(request.getDiscount());
+                    if (request.getOriginalPrice() != null) {
+                        int disc = request.getDiscount() != null ? request.getDiscount() : 0;
+                        BigDecimal price = request.getOriginalPrice().multiply(BigDecimal.valueOf(100 - disc)).divide(BigDecimal.valueOf(100));
+                        variant.setPrice(price);
+                    }
 
-                variant.setProducts(product);
+                    // Ưu tiên tồn kho riêng theo biến thể, fallback về stockQuantity chung
+                    String key = c.trim() + "|" + s.trim();
+                    Integer stock = variantStockMap.getOrDefault(key,
+                        request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+                    variant.setStockQuantity(stock);
 
-                String baseCode = (product.getProductCode() != null && !product.getProductCode().isEmpty()) ? product.getProductCode() : "P" + (product.getId() != null ? product.getId() : "NEW");
-                // Sử dụng UUID ngắn hoặc counter để đảm bảo SKU không bao giờ trùng trong cùng 1 lần lưu
-                String sku = baseCode + "-" + c.toUpperCase() + "-" + s.toUpperCase() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
-                variant.setSkuCode(sku);
+                    variant.setProducts(product);
 
-                product.getProductVariants().add(variant);
+                    String baseCode = (product.getProductCode() != null && !product.getProductCode().isEmpty()) ? product.getProductCode() : "P" + (product.getId() != null ? product.getId() : "NEW");
+                    String sku = baseCode + "-" + c.toUpperCase() + "-" + s.toUpperCase() + "-" + java.util.UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+                    variant.setSkuCode(sku);
+
+                    product.getProductVariants().add(variant);
+                }
             }
         }
         return product;
@@ -357,6 +409,69 @@ public class ProductServiceImpl implements ProductService {
                 dto.setPrice(dto.getVariants().get(0).getPrice());
                 dto.setOriginalPrice(dto.getVariants().get(0).getOriginalPrice());
                 dto.setDiscount(dto.getVariants().get(0).getDiscount());
+            }
+        }
+
+        // --- Logic cho Combo ---
+        dto.setIsCombo(product.getIsCombo() != null ? product.getIsCombo() : false);
+        if (dto.getIsCombo()) {
+            List<com.javaweb.dto.ComboItemDTO> comboItemDTOs = new ArrayList<>();
+            int minStock = Integer.MAX_VALUE;
+            BigDecimal retailTotal = BigDecimal.ZERO;
+
+            if (product.getComboItems() != null) {
+                for (com.javaweb.entity.ComboItem item : product.getComboItems()) {
+                    com.javaweb.dto.ComboItemDTO itemDto = new com.javaweb.dto.ComboItemDTO();
+                    itemDto.setId(item.getId());
+                    itemDto.setQuantity(item.getQuantity());
+                    
+                    com.javaweb.entity.ProductVariant variant = item.getProductVariant();
+                    if (variant != null) {
+                        itemDto.setProductVariantId(variant.getId());
+                        if (variant.getProducts() != null) {
+                            itemDto.setProductId(variant.getProducts().getId());
+                            itemDto.setProductName(variant.getProducts().getName());
+                        }
+                        itemDto.setSkuCode(variant.getSkuCode());
+                        itemDto.setColor(variant.getColor());
+                        itemDto.setSize(variant.getSize());
+                        itemDto.setPrice(variant.getPrice());
+                        
+                        if (variant.getPrice() != null) {
+                            BigDecimal itemPrice = variant.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                            retailTotal = retailTotal.add(itemPrice);
+                        }
+
+                        int variantStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+                        int possibleComboQty = variantStock / item.getQuantity();
+                        if (possibleComboQty < minStock) {
+                            minStock = possibleComboQty;
+                        }
+                    }
+                    comboItemDTOs.add(itemDto);
+                }
+            }
+            dto.setComboItems(comboItemDTOs);
+            dto.setRetailTotal(retailTotal);
+
+            int finalComboStock = minStock == Integer.MAX_VALUE ? 0 : minStock;
+            if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
+                dto.getVariants().get(0).setStockQuantity(finalComboStock);
+            }
+
+            BigDecimal comboPrice = dto.getPrice() != null ? dto.getPrice() : BigDecimal.ZERO;
+            if (retailTotal.compareTo(BigDecimal.ZERO) > 0 && comboPrice.compareTo(retailTotal) < 0) {
+                BigDecimal savings = retailTotal.subtract(comboPrice);
+                dto.setSavingsAmount(savings);
+                BigDecimal pct = savings.multiply(BigDecimal.valueOf(100)).divide(retailTotal, 0, java.math.RoundingMode.HALF_UP);
+                dto.setDiscountPercent(pct.intValue());
+                dto.setDiscount(pct.intValue());
+                if (dto.getVariants() != null && !dto.getVariants().isEmpty()) {
+                    dto.getVariants().get(0).setDiscount(pct.intValue());
+                }
+            } else {
+                dto.setSavingsAmount(BigDecimal.ZERO);
+                dto.setDiscountPercent(0);
             }
         }
 

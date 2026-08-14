@@ -51,4 +51,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "GROUP BY p.id " +
             "ORDER BY SUM(oi.quantity) DESC")
     List<Long> findTopSellingProductIds(Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("UPDATE Product p SET p.isVectorized = false")
+    void resetVectorStatus();
 }

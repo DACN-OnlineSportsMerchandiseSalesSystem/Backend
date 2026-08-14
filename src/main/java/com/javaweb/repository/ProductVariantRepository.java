@@ -9,4 +9,6 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     @Modifying
     @Transactional
     void deleteByProducts_Id(Long productId);
+
+    java.util.Optional<ProductVariant> findBySkuCode(String skuCode);
 }

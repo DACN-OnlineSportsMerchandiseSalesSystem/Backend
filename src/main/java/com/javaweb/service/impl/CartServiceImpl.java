@@ -8,6 +8,7 @@ import com.javaweb.dto.OrderItemRequestDTO;
 import com.javaweb.dto.UpdateCartRequestDTO;
 import com.javaweb.entity.Cart;
 import com.javaweb.entity.CartItem;
+import com.javaweb.entity.Product;
 import com.javaweb.entity.ProductVariant;
 import com.javaweb.entity.User;
 import com.javaweb.enums.CartStatus;
@@ -121,8 +122,51 @@ public class CartServiceImpl implements CartService {
             throw new IllegalArgumentException("Quantity must be greater than 0");
         }
 
-        ProductVariant variant = productVariantRepository.findById(request.getProductVariantId())
-                .orElseThrow(() -> new ResouceNotFoundException("Product Variant not found with id: " + request.getProductVariantId()));
+        ProductVariant variant;
+        if (request.getChildVariantIds() != null && !request.getChildVariantIds().isEmpty()) {
+            ProductVariant defaultComboVariant = productVariantRepository.findById(request.getProductVariantId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Product Variant not found with id: " + request.getProductVariantId()));
+            Product comboProduct = defaultComboVariant.getProducts();
+            if (comboProduct == null || comboProduct.getIsCombo() == null || !comboProduct.getIsCombo()) {
+                throw new IllegalArgumentException("Product is not a combo");
+            }
+
+            List<Long> sortedIds = request.getChildVariantIds().stream().sorted().collect(Collectors.toList());
+            String varsSuffix = sortedIds.stream().map(Object::toString).collect(Collectors.joining("-"));
+            String dynamicSku = "COMBO-" + comboProduct.getId() + "-VARS-" + varsSuffix;
+
+            Optional<ProductVariant> existingDynamicVariant = productVariantRepository.findBySkuCode(dynamicSku);
+            if (existingDynamicVariant.isPresent()) {
+                variant = existingDynamicVariant.get();
+            } else {
+                List<ProductVariant> childVariants = productVariantRepository.findAllById(sortedIds);
+                if (childVariants.size() != sortedIds.size()) {
+                    throw new IllegalArgumentException("Some child variants were not found");
+                }
+
+                String sizes = childVariants.stream()
+                        .map(v -> v.getProducts().getName() + ": " + (v.getSize() != null ? v.getSize() : "Default"))
+                        .collect(Collectors.joining(" | "));
+                String colors = childVariants.stream()
+                        .map(v -> v.getProducts().getName() + ": " + (v.getColor() != null ? v.getColor() : "Default"))
+                        .collect(Collectors.joining(" | "));
+
+                ProductVariant newVariant = new ProductVariant();
+                newVariant.setProducts(comboProduct);
+                newVariant.setSkuCode(dynamicSku);
+                newVariant.setSize(sizes);
+                newVariant.setColor(colors);
+                newVariant.setPrice(defaultComboVariant.getPrice());
+                newVariant.setOriginalPrice(defaultComboVariant.getOriginalPrice());
+                newVariant.setDiscount(defaultComboVariant.getDiscount());
+                newVariant.setStockQuantity(0);
+
+                variant = productVariantRepository.save(newVariant);
+            }
+        } else {
+            variant = productVariantRepository.findById(request.getProductVariantId())
+                    .orElseThrow(() -> new ResouceNotFoundException("Product Variant not found with id: " + request.getProductVariantId()));
+        }
 
         Optional<CartItem> existingItem = cart.getCartItems().stream()
                 .filter(item -> item.getProductVariant() != null && item.getProductVariant().getId().equals(variant.getId()))
@@ -279,6 +323,38 @@ public class CartServiceImpl implements CartService {
     }
 
     private void validateStock(ProductVariant variant, int requestedQuantity) {
+        if (variant.getSkuCode() != null && variant.getSkuCode().contains("-VARS-")) {
+            String[] parts = variant.getSkuCode().split("-VARS-");
+            if (parts.length > 1) {
+                String[] varIdsStr = parts[1].split("-");
+                for (String varIdStr : varIdsStr) {
+                    Long childVarId = Long.parseLong(varIdStr);
+                    ProductVariant childVariant = productVariantRepository.findById(childVarId).orElse(null);
+                    if (childVariant != null) {
+                        int multiplier = 1;
+                        Product comboProduct = variant.getProducts();
+                        if (comboProduct != null && comboProduct.getComboItems() != null) {
+                            for (com.javaweb.entity.ComboItem ci : comboProduct.getComboItems()) {
+                                if (ci.getProductVariant() != null && ci.getProductVariant().getProducts() != null &&
+                                    childVariant.getProducts() != null &&
+                                    ci.getProductVariant().getProducts().getId().equals(childVariant.getProducts().getId())) {
+                                    multiplier = ci.getQuantity();
+                                    break;
+                                }
+                            }
+                        }
+                        int requiredQty = requestedQuantity * multiplier;
+                        int childAvailableStock = childVariant.getStockQuantity() != null ? childVariant.getStockQuantity() : 0;
+                        if (requiredQty > childAvailableStock) {
+                            throw new IllegalArgumentException("Sản phẩm '" + childVariant.getProducts().getName() + "' không đủ tồn kho. Yêu cầu: "
+                                    + requiredQty + ", Hiện có: " + childAvailableStock);
+                        }
+                    }
+                }
+            }
+            return;
+        }
+
         int availableStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
         if (requestedQuantity > availableStock) {
             String productName = variant.getProducts() != null ? variant.getProducts().getName() : "Product";

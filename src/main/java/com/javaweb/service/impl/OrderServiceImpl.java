@@ -90,8 +90,54 @@ public class OrderServiceImpl implements OrderService {
 			for (OrderItems item : order.getOrderItems()) {
 				ProductVariant variant = item.getProductVariants();
 				if (variant != null) {
-					variant.setStockQuantity(variant.getStockQuantity() + item.getQuantity());
-					productVariantRepository.save(variant);
+					Product product = variant.getProducts();
+					if (product != null && product.getIsCombo() != null && product.getIsCombo()) {
+						if (variant.getSkuCode() != null && variant.getSkuCode().contains("-VARS-")) {
+							// Dynamic Combo -> Hoàn trả tồn kho cho tất cả sản phẩm con được chọn
+							String[] parts = variant.getSkuCode().split("-VARS-");
+							if (parts.length > 1) {
+								String[] varIdsStr = parts[1].split("-");
+								for (String varIdStr : varIdsStr) {
+									Long childVarId = Long.parseLong(varIdStr);
+									ProductVariant childVariant = productVariantRepository.findById(childVarId).orElse(null);
+									if (childVariant != null) {
+										int multiplier = 1;
+										if (product.getComboItems() != null) {
+											for (com.javaweb.entity.ComboItem ci : product.getComboItems()) {
+												if (ci.getProductVariant() != null && ci.getProductVariant().getProducts() != null &&
+													childVariant.getProducts() != null &&
+													ci.getProductVariant().getProducts().getId().equals(childVariant.getProducts().getId())) {
+													multiplier = ci.getQuantity();
+													break;
+												}
+											}
+										}
+										int refundQty = multiplier * item.getQuantity();
+										int currentStock = childVariant.getStockQuantity() != null ? childVariant.getStockQuantity() : 0;
+										childVariant.setStockQuantity(currentStock + refundQty);
+										productVariantRepository.save(childVariant);
+									}
+								}
+							}
+						} else {
+							// Static Combo -> Hoàn trả tồn kho cho tất cả sản phẩm con mặc định
+							if (product.getComboItems() != null) {
+								for (com.javaweb.entity.ComboItem comboItem : product.getComboItems()) {
+									ProductVariant childVariant = comboItem.getProductVariant();
+									if (childVariant != null) {
+										int refundQty = comboItem.getQuantity() * item.getQuantity();
+										int currentStock = childVariant.getStockQuantity() != null ? childVariant.getStockQuantity() : 0;
+										childVariant.setStockQuantity(currentStock + refundQty);
+										productVariantRepository.save(childVariant);
+									}
+								}
+							}
+						}
+					} else {
+						// Sản phẩm thường -> Hoàn trả tồn kho cho chính nó
+						variant.setStockQuantity(variant.getStockQuantity() + item.getQuantity());
+						productVariantRepository.save(variant);
+					}
 				}
 			}
 			// 2. Hoàn trả lại số lượt dùng voucher (nếu có)
@@ -208,14 +254,81 @@ public class OrderServiceImpl implements OrderService {
 									"Variant not found: " + itemDto.getProductVariantId()));
 
 					// KIỂM TRA VÀ TRỪ TỒN KHO
-					int availableStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
-					if (availableStock < itemDto.getQuantity()) {
-						String productName = variant.getProducts() != null ? variant.getProducts().getName() : "Product";
-						throw new IllegalArgumentException(productName + " does not have enough stock. Requested: "
-								+ itemDto.getQuantity() + ", Available: " + availableStock);
+					Product product = variant.getProducts();
+					if (product != null && product.getIsCombo() != null && product.getIsCombo()) {
+						if (variant.getSkuCode() != null && variant.getSkuCode().contains("-VARS-")) {
+							// Dynamic Combo -> Kiểm tra và trừ tồn kho cho tất cả sản phẩm con được chọn
+							String[] parts = variant.getSkuCode().split("-VARS-");
+							if (parts.length > 1) {
+								String[] varIdsStr = parts[1].split("-");
+								for (String varIdStr : varIdsStr) {
+									Long childVarId = Long.parseLong(varIdStr);
+									ProductVariant childVariant = productVariantRepository.findById(childVarId)
+											.orElseThrow(() -> new ResouceNotFoundException("Child Variant not found: " + childVarId));
+									int multiplier = 1;
+									if (product.getComboItems() != null) {
+										for (com.javaweb.entity.ComboItem ci : product.getComboItems()) {
+											if (ci.getProductVariant() != null && ci.getProductVariant().getProducts() != null &&
+												childVariant.getProducts() != null &&
+												ci.getProductVariant().getProducts().getId().equals(childVariant.getProducts().getId())) {
+												multiplier = ci.getQuantity();
+												break;
+											}
+										}
+									}
+									int deductionQty = multiplier * itemDto.getQuantity();
+									int childStock = childVariant.getStockQuantity() != null ? childVariant.getStockQuantity() : 0;
+									if (childStock < deductionQty) {
+										throw new IllegalArgumentException("Sản phẩm '" + childVariant.getProducts().getName() + "' không đủ tồn kho. Yêu cầu: "
+												+ deductionQty + ", Hiện có: " + childStock);
+									}
+									childVariant.setStockQuantity(childStock - deductionQty);
+									productVariantRepository.save(childVariant);
+								}
+							}
+						} else {
+							// Static Combo -> Kiểm tra và trừ tồn kho cho tất cả sản phẩm con mặc định
+							int minPossibleComboStock = Integer.MAX_VALUE;
+							if (product.getComboItems() != null) {
+								for (com.javaweb.entity.ComboItem comboItem : product.getComboItems()) {
+									ProductVariant childVariant = comboItem.getProductVariant();
+									if (childVariant != null) {
+										int childStock = childVariant.getStockQuantity() != null ? childVariant.getStockQuantity() : 0;
+										int possibleQty = childStock / comboItem.getQuantity();
+										if (possibleQty < minPossibleComboStock) {
+											minPossibleComboStock = possibleQty;
+										}
+									}
+								}
+							}
+							int availableComboStock = minPossibleComboStock == Integer.MAX_VALUE ? 0 : minPossibleComboStock;
+							if (availableComboStock < itemDto.getQuantity()) {
+								throw new IllegalArgumentException("Combo " + product.getName() + " does not have enough stock. Requested: "
+										+ itemDto.getQuantity() + ", Available: " + availableComboStock);
+							}
+
+							if (product.getComboItems() != null) {
+								for (com.javaweb.entity.ComboItem comboItem : product.getComboItems()) {
+									ProductVariant childVariant = comboItem.getProductVariant();
+									if (childVariant != null) {
+										int deductionQty = comboItem.getQuantity() * itemDto.getQuantity();
+										childVariant.setStockQuantity(childVariant.getStockQuantity() - deductionQty);
+										productVariantRepository.save(childVariant);
+									}
+								}
+							}
+						}
+					} else {
+						// Sản phẩm thường -> Kiểm tra và trừ tồn kho chính nó
+						int availableStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+						if (availableStock < itemDto.getQuantity()) {
+							String productName = product != null ? product.getName() : "Product";
+							throw new IllegalArgumentException(productName + " does not have enough stock. Requested: "
+									+ itemDto.getQuantity() + ", Available: " + availableStock);
+						}
+						variant.setStockQuantity(availableStock - itemDto.getQuantity());
+						productVariantRepository.save(variant);
 					}
-					variant.setStockQuantity(availableStock - itemDto.getQuantity());
-					productVariantRepository.save(variant);
 
 					item.setProductVariants(variant);
 

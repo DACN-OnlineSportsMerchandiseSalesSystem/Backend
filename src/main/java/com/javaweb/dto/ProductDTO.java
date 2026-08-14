@@ -28,4 +28,10 @@ public class ProductDTO {
     private List<ProductVariantDTO> variants;
     private BigDecimal price; // Giá hiển thị đại diện
     private BigDecimal originalPrice;
+
+    private Boolean isCombo;
+    private List<ComboItemDTO> comboItems;
+    private BigDecimal retailTotal;
+    private BigDecimal savingsAmount;
+    private Integer discountPercent;
 }

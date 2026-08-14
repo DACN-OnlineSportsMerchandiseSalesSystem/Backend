@@ -145,10 +145,15 @@ public class AiConfig {
     public EmbeddingStore<TextSegment> embeddingStore() {
         if (isAiEnabled()) {
             // IF: Có cấu hình AI -> Kết nối vào cơ sở dữ liệu vector Chroma DB thật
-            return ChromaEmbeddingStore.builder()
-                    .baseUrl(chromaBaseUrl)
-                    .collectionName("sport_assistant_v2")
-                    .build();
+            try {
+                return ChromaEmbeddingStore.builder()
+                        .baseUrl(chromaBaseUrl)
+                        .collectionName("sport_assistant_v2")
+                        .build();
+            } catch (Exception e) {
+                System.err.println("WARNING: Failed to connect to Chroma DB at " + chromaBaseUrl + " (" + e.getMessage() + "). Falling back to InMemoryEmbeddingStore to allow backend startup.");
+                return new InMemoryEmbeddingStore<>();
+            }
         } else {
             // ELSE: Chạy InMemory Store offline lưu trên RAM máy local
             return new InMemoryEmbeddingStore<>();

@@ -11,4 +11,9 @@ import java.util.Optional;
 public interface BlogRepository extends JpaRepository<Blog, Long> {
     List<Blog> findByIsVectorizedFalse();
     Optional<Blog> findBySlug(String slug);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("UPDATE Blog b SET b.isVectorized = false")
+    void resetVectorStatus();
 }

@@ -24,6 +24,7 @@ public class ProductRequestDTO {
     private List<Long> categoryIds;
     private Long brandId;
     private String imageUrl;
+    private List<String> imageUrls;
     private List<String> sizes;
     private List<String> colors;
 
@@ -32,5 +33,8 @@ public class ProductRequestDTO {
 
     // Tồn kho riêng theo từng biến thể (màu + cỡ) — ưu tiên hơn stockQuantity
     private List<VariantStockDTO> variantStocks;
+
+    private Boolean isCombo;
+    private List<ComboItemDTO> comboItems;
 }
 
