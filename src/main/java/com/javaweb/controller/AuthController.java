@@ -44,19 +44,25 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Xác thực Bot (Turnstile) thất bại!");
         }
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginDto.getEmail(),
-                        loginDto.getPassword()
-                )
-        );
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            loginDto.getEmail(),
+                            loginDto.getPassword()
+                    )
+            );
 
-        // Đánh dấu người này đã đăng nhập vào phiên hệ thống
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+            // Đánh dấu người này đã đăng nhập vào phiên hệ thống
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        String token = jwtTokenProvider.generateToken(authentication);
+            String token = jwtTokenProvider.generateToken(authentication);
 
-        return ResponseEntity.ok(new JwtAuthResponse(token));
+            return ResponseEntity.ok(new JwtAuthResponse(token));
+        } catch (org.springframework.security.authentication.BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email hoặc mật khẩu không chính xác!");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Đăng nhập thất bại: " + e.getMessage());
+        }
     }
 
     // 2. YÊU CẦU MÃ OTP ĐỂ ĐĂNG KÝ

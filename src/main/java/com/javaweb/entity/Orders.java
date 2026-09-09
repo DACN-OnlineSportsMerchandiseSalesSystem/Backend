@@ -49,6 +49,9 @@ public class Orders {
     @Column(name = "payment_method")
     private String paymentMethod;
 
+    @Column(name = "cart_id")
+    private Long cartId;
+
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "orders")
     private Set<OrderItems> orderItems = new HashSet<>();
 

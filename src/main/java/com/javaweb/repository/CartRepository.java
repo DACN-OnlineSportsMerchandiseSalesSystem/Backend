@@ -11,9 +11,15 @@ import java.util.Optional;
 @Repository
 public interface CartRepository extends JpaRepository<Cart, Long> {
     List<Cart> findByUserIdOrderByCreatedAtDesc(Long userId);
+
     List<Cart> findByUserIdAndStatusOrderByCreatedAtDesc(Long userId, CartStatus status);
+
     Optional<Cart> findByIdAndUserId(Long id, Long userId);
+
     Optional<Cart> findFirstByUserIdAndIsDefaultTrueAndStatus(Long userId, CartStatus status);
+
     Optional<Cart> findFirstByUserIdAndStatusOrderByCreatedAtAsc(Long userId, CartStatus status);
+
     List<Cart> findByUserIdAndStatus(Long userId, CartStatus status);
+    Optional<Cart> findFirstByUserIdAndNameAndStatus(Long userId, String name, CartStatus status);
 }

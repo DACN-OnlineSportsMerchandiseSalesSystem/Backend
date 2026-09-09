@@ -65,7 +65,13 @@ public class CartServiceImpl implements CartService {
         User user = getUser(userEmail);
         Cart cart = new Cart();
         cart.setUser(user);
-        cart.setName(normalizeCartName(request != null ? request.getName() : null));
+        if (request.getName() == null) {
+            request.setName(DEFAULT_CART_NAME);
+        }
+        if (cartRepository.findFirstByUserIdAndNameAndStatus(user.getId(), request.getName(), CartStatus.ACTIVE).isPresent()) {
+            throw new IllegalArgumentException("Cart name already exists");
+        }
+        cart.setName(normalizeCartName(request.getName()));
         cart.setStatus(CartStatus.ACTIVE);
 
         boolean hasActiveCart = !cartRepository.findByUserIdAndStatus(user.getId(), CartStatus.ACTIVE).isEmpty();
@@ -82,7 +88,13 @@ public class CartServiceImpl implements CartService {
         }
 
         if (request.getName() != null) {
-            cart.setName(normalizeCartName(request.getName()));
+            String newName = normalizeCartName(request.getName());
+            if (!newName.equals(cart.getName())) {
+                if (cartRepository.findFirstByUserIdAndNameAndStatus(cart.getUser().getId(), newName, CartStatus.ACTIVE).isPresent()) {
+                    throw new IllegalArgumentException("Cart name already exists");
+                }
+            }   
+            cart.setName(newName);
         }
 
         if (Boolean.TRUE.equals(request.getIsDefault())) {
@@ -125,7 +137,8 @@ public class CartServiceImpl implements CartService {
         ProductVariant variant;
         if (request.getChildVariantIds() != null && !request.getChildVariantIds().isEmpty()) {
             ProductVariant defaultComboVariant = productVariantRepository.findById(request.getProductVariantId())
-                    .orElseThrow(() -> new ResouceNotFoundException("Product Variant not found with id: " + request.getProductVariantId()));
+                    .orElseThrow(() -> new ResouceNotFoundException(
+                            "Product Variant not found with id: " + request.getProductVariantId()));
             Product comboProduct = defaultComboVariant.getProducts();
             if (comboProduct == null || comboProduct.getIsCombo() == null || !comboProduct.getIsCombo()) {
                 throw new IllegalArgumentException("Product is not a combo");
@@ -165,11 +178,13 @@ public class CartServiceImpl implements CartService {
             }
         } else {
             variant = productVariantRepository.findById(request.getProductVariantId())
-                    .orElseThrow(() -> new ResouceNotFoundException("Product Variant not found with id: " + request.getProductVariantId()));
+                    .orElseThrow(() -> new ResouceNotFoundException(
+                            "Product Variant not found with id: " + request.getProductVariantId()));
         }
 
         Optional<CartItem> existingItem = cart.getCartItems().stream()
-                .filter(item -> item.getProductVariant() != null && item.getProductVariant().getId().equals(variant.getId()))
+                .filter(item -> item.getProductVariant() != null
+                        && item.getProductVariant().getId().equals(variant.getId()))
                 .findFirst();
 
         if (existingItem.isPresent()) {
@@ -266,9 +281,14 @@ public class CartServiceImpl implements CartService {
     @Override
     public void markCartCheckedOut(Long cartId, String userEmail) {
         Cart cart = getActiveCartForUser(cartId, userEmail);
+        boolean wasDefault = Boolean.TRUE.equals(cart.getIsDefault());
         cart.setStatus(CartStatus.CHECKED_OUT);
         cart.setIsDefault(false);
         cartRepository.save(cart);
+
+        if (wasDefault) {
+            assignFallbackDefaultCart(cart.getUser().getId());
+        }
     }
 
     private User getUser(String userEmail) {
@@ -336,17 +356,21 @@ public class CartServiceImpl implements CartService {
                         if (comboProduct != null && comboProduct.getComboItems() != null) {
                             for (com.javaweb.entity.ComboItem ci : comboProduct.getComboItems()) {
                                 if (ci.getProductVariant() != null && ci.getProductVariant().getProducts() != null &&
-                                    childVariant.getProducts() != null &&
-                                    ci.getProductVariant().getProducts().getId().equals(childVariant.getProducts().getId())) {
+                                        childVariant.getProducts() != null &&
+                                        ci.getProductVariant().getProducts().getId()
+                                                .equals(childVariant.getProducts().getId())) {
                                     multiplier = ci.getQuantity();
                                     break;
                                 }
                             }
                         }
                         int requiredQty = requestedQuantity * multiplier;
-                        int childAvailableStock = childVariant.getStockQuantity() != null ? childVariant.getStockQuantity() : 0;
+                        int childAvailableStock = childVariant.getStockQuantity() != null
+                                ? childVariant.getStockQuantity()
+                                : 0;
                         if (requiredQty > childAvailableStock) {
-                            throw new IllegalArgumentException("Sản phẩm '" + childVariant.getProducts().getName() + "' không đủ tồn kho. Yêu cầu: "
+                            throw new IllegalArgumentException("Sản phẩm '" + childVariant.getProducts().getName()
+                                    + "' không đủ tồn kho. Yêu cầu: "
                                     + requiredQty + ", Hiện có: " + childAvailableStock);
                         }
                     }
@@ -391,7 +415,8 @@ public class CartServiceImpl implements CartService {
         int totalQuantity = 0;
 
         if (cart.getCartItems() != null) {
-            List<com.javaweb.entity.Discount> activeDiscounts = discountRepository.findAllActiveDiscounts(new java.util.Date());
+            List<com.javaweb.entity.Discount> activeDiscounts = discountRepository
+                    .findAllActiveDiscounts(new java.util.Date());
             List<CartItem> sortedItems = new ArrayList<>(cart.getCartItems());
             sortedItems.sort((a, b) -> a.getId().compareTo(b.getId()));
 
@@ -410,10 +435,16 @@ public class CartServiceImpl implements CartService {
 
                     int manualDiscount = variant.getDiscount() != null ? variant.getDiscount() : 0;
                     int promoDiscount = activeDiscounts.stream().filter(d -> {
-                        if (d.getScope() == com.javaweb.enums.DiscountScope.GLOBAL) return true;
-                        if (d.getScope() == com.javaweb.enums.DiscountScope.BRAND && variant.getProducts() != null && variant.getProducts().getBrand() != null && variant.getProducts().getBrand().getId().equals(d.getBrand() != null ? d.getBrand().getId() : null)) return true;
-                        if (d.getScope() == com.javaweb.enums.DiscountScope.CATEGORY && d.getCategory() != null && variant.getProducts() != null && variant.getProducts().getCategories() != null)
-                            return variant.getProducts().getCategories().stream().anyMatch(c -> c.getId().equals(d.getCategory().getId()));
+                        if (d.getScope() == com.javaweb.enums.DiscountScope.GLOBAL)
+                            return true;
+                        if (d.getScope() == com.javaweb.enums.DiscountScope.BRAND && variant.getProducts() != null
+                                && variant.getProducts().getBrand() != null && variant.getProducts().getBrand().getId()
+                                        .equals(d.getBrand() != null ? d.getBrand().getId() : null))
+                            return true;
+                        if (d.getScope() == com.javaweb.enums.DiscountScope.CATEGORY && d.getCategory() != null
+                                && variant.getProducts() != null && variant.getProducts().getCategories() != null)
+                            return variant.getProducts().getCategories().stream()
+                                    .anyMatch(c -> c.getId().equals(d.getCategory().getId()));
                         return false;
                     }).mapToInt(com.javaweb.entity.Discount::getDiscountPercent).max().orElse(0);
                     itemDTO.setDiscount(Math.max(manualDiscount, promoDiscount));

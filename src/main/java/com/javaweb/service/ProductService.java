@@ -26,4 +26,6 @@ public interface ProductService {
     List<ProductDTO> getTopSellingProductsPublic(int limit);
 
     List<ProductDTO> getPersonalizedRecommendations(String email, int limit);
+
+    ProductDTO mapProductToDTO(com.javaweb.entity.Product product);
 }

@@ -8,6 +8,7 @@ import com.javaweb.enums.OrderStatus;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.OrderRepository;
 import com.javaweb.repository.PaymentRepository;
+import com.javaweb.service.CartService;
 import com.javaweb.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpEntity;
@@ -27,6 +28,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final VNPayConfig vnPayConfig;
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final CartService cartService;
 
     @Override
     public String createMoMoPayment(Long orderId) {
@@ -143,6 +145,9 @@ public class PaymentServiceImpl implements PaymentService {
             payment.setTransactionCode(transId);
             payment.setOrders(order);
             paymentRepository.save(payment);
+
+            // Đóng/xóa giỏ hàng khi thanh toán MoMo thành công
+            closeCartForOrder(order);
         }
     }
 
@@ -181,6 +186,10 @@ public class PaymentServiceImpl implements PaymentService {
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 
+        cld.add(java.util.Calendar.MINUTE, 15);
+        String vnp_ExpireDate = formatter.format(cld.getTime());
+        vnp_Params.put("vnp_ExpireDate", vnp_ExpireDate);
+
         List<String> fieldNames = new ArrayList<>(vnp_Params.keySet());
         Collections.sort(fieldNames);
         StringBuilder hashData = new StringBuilder();
@@ -212,18 +221,19 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     public void processVNPayIpn(Map<String, String> params) {
-        String vnp_SecureHash = params.get("vnp_SecureHash");
-        params.remove("vnp_SecureHashType");
-        params.remove("vnp_SecureHash");
+        Map<String, String> fields = new HashMap<>(params);
+        String vnp_SecureHash = fields.get("vnp_SecureHash");
+        fields.remove("vnp_SecureHashType");
+        fields.remove("vnp_SecureHash");
 
         // Sort and hash
-        List<String> fieldNames = new ArrayList<>(params.keySet());
+        List<String> fieldNames = new ArrayList<>(fields.keySet());
         Collections.sort(fieldNames);
         StringBuilder hashData = new StringBuilder();
         Iterator<String> itr = fieldNames.iterator();
         while (itr.hasNext()) {
             String fieldName = itr.next();
-            String fieldValue = params.get(fieldName);
+            String fieldValue = fields.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
                 hashData.append(fieldName);
                 hashData.append('=');
@@ -254,11 +264,33 @@ public class PaymentServiceImpl implements PaymentService {
                 payment.setOrders(order);
                 paymentRepository.save(payment);
                 System.out.println("VNPay IPN: Payment Successful for Order " + orderId);
+
+                // Đóng/xóa giỏ hàng khi thanh toán VNPay thành công
+                closeCartForOrder(order);
             } else {
                 System.err.println("VNPay IPN: Payment Failed with ResponseCode " + params.get("vnp_ResponseCode"));
             }
         } else {
             System.err.println("VNPay IPN: Invalid Signature!");
+        }
+    }
+
+    private void closeCartForOrder(Orders order) {
+        if (order != null && order.getUser() != null) {
+            String userEmail = order.getUser().getEmail();
+            if (order.getCartId() != null) {
+                try {
+                    cartService.markCartCheckedOut(order.getCartId(), userEmail);
+                } catch (Exception e) {
+                    System.err.println("Lỗi đóng giỏ hàng sau khi thanh toán: " + e.getMessage());
+                }
+            } else {
+                try {
+                    cartService.clearCart(userEmail);
+                } catch (Exception e) {
+                    System.err.println("Lỗi xóa giỏ hàng mặc định sau khi thanh toán: " + e.getMessage());
+                }
+            }
         }
     }
 }

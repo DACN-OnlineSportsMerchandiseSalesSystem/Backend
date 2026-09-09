@@ -38,6 +38,7 @@ public class OrderServiceImpl implements OrderService {
 	private final VoucherRepository voucherRepository;
 	private final EmailService emailService;
 	private final CartService cartService;
+	private final CartRepository cartRepository;
 	private final DiscountRepository discountRepository;
 
 	@Override
@@ -59,6 +60,7 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@Transactional
 	public OrderDTO updateOrderStatus(Long id, OrderStatus status) {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
@@ -146,6 +148,20 @@ public class OrderServiceImpl implements OrderService {
 				int newUsedCount = Math.max(0, voucher.getUsedCount() - 1);
 				voucher.setUsedCount(newUsedCount);
 				voucherRepository.save(voucher);
+			}
+
+			// 3. Khôi phục giỏ hàng phụ nếu giỏ đó đã lỡ bị đóng thành CHECKED_OUT
+			if (order.getCartId() != null) {
+				try {
+					cartRepository.findById(order.getCartId()).ifPresent(c -> {
+						if (c.getStatus() == com.javaweb.enums.CartStatus.CHECKED_OUT) {
+							c.setStatus(com.javaweb.enums.CartStatus.ACTIVE);
+							cartRepository.save(c);
+						}
+					});
+				} catch (Exception e) {
+					System.err.println("Không thể khôi phục giỏ hàng khi hủy đơn: " + e.getMessage());
+				}
 			}
 		}
 
@@ -421,17 +437,29 @@ public class OrderServiceImpl implements OrderService {
 		// 4. Tính tổng bill dồn kèm giá Ship (Mặc định 30k)
 		total = total.add(BigDecimal.valueOf(30000));
 		order.setTotalPrice(total);
+		if (checkoutFromCart) {
+			order.setCartId(request.getCartId());
+		}
 
 		Orders savedOrder = orderRepository.save(order);
 
-		// 5. Cập nhật cart sau khi tạo đơn thành công
-		if (checkoutFromCart) {
-			cartService.markCartCheckedOut(request.getCartId(), userEmail);
-		} else {
-			try {
-				cartService.clearCart(userEmail);
-			} catch (Exception e) {
-				System.err.println("Không thể xóa giỏ hàng: " + e.getMessage());
+		// 5. Cập nhật cart sau khi tạo đơn thành công:
+		// Chỉ xóa / đóng giỏ hàng ngay nếu phương thức là COD (đã chốt đơn giao nhận).
+		// Với thanh toán trực tuyến (VNPAY, MOMO...), giỏ hàng được giữ nguyên để nếu khách
+		// thoát ra / hủy / chưa thanh toán thì giỏ hàng không bị mất. Giỏ sẽ được đóng khi thanh toán PAID.
+		boolean isOnlinePayment = "VNPAY".equalsIgnoreCase(request.getPaymentMethod())
+				|| "MOMO".equalsIgnoreCase(request.getPaymentMethod())
+				|| "CARD".equalsIgnoreCase(request.getPaymentMethod());
+
+		if (!isOnlinePayment) {
+			if (checkoutFromCart) {
+				cartService.markCartCheckedOut(request.getCartId(), userEmail);
+			} else {
+				try {
+					cartService.clearCart(userEmail);
+				} catch (Exception e) {
+					System.err.println("Không thể xóa giỏ hàng: " + e.getMessage());
+				}
 			}
 		}
 
@@ -458,6 +486,7 @@ public class OrderServiceImpl implements OrderService {
 		dto.setReceiverName(order.getReceiverName());
 		dto.setPhone(order.getPhone());
 		dto.setPaymentMethod(order.getPaymentMethod());
+		dto.setCartId(order.getCartId());
 
 		// Nặn vỏ bọc AddressDTO từ Hóa đơn (Snapshot)
 		if (order.getBillingStreet() != null || order.getBillingCity() != null) {

@@ -38,9 +38,10 @@ public class StatisticServiceImpl implements StatisticService {
 
     @Override
     public void triggerManualSync() {
-        System.out.println("Admin kích hoạt đồng bộ dữ liệu thủ công!");
-        // Chạy đồng bộ cho ngày hôm nay ngay lập tức (Phục vụ cho lúc Demo)
-        syncDailyStatistic(LocalDate.now());
+        System.out.println("Admin kích hoạt đồng bộ dữ liệu thủ công cho 180 ngày gần đây...");
+        for (int i = 180; i >= 0; i--) {
+            syncDailyStatistic(LocalDate.now().minusDays(i));
+        }
     }
 
     @Override

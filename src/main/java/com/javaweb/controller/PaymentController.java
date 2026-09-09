@@ -1,5 +1,7 @@
 package com.javaweb.controller;
 
+import com.javaweb.enums.OrderStatus;
+import com.javaweb.service.OrderService;
 import com.javaweb.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,6 +21,7 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final OrderService orderService;
 
     // ===============================
     // MOMO ENDPOINTS
@@ -55,9 +58,53 @@ public class PaymentController {
     public ResponseEntity<String> createVNPayPayment(
             @RequestParam Long orderId,
             jakarta.servlet.http.HttpServletRequest request) {
-        String ipAddr = request.getRemoteAddr();
+        String ipAddr = request.getHeader("X-FORWARDED-FOR");
+        if (ipAddr == null || ipAddr.isEmpty() || "unknown".equalsIgnoreCase(ipAddr)) {
+            ipAddr = request.getRemoteAddr();
+        }
+        if ("0:0:0:0:0:0:0:1".equals(ipAddr)) {
+            ipAddr = "127.0.0.1";
+        }
         String payUrl = paymentService.createVNPayPayment(orderId, ipAddr);
         return ResponseEntity.ok(payUrl);
+    }
+
+    @GetMapping("/vnpay/return")
+    @Operation(summary = "VNPay Return Callback", description = "Callback endpoint when user completes payment and is redirected back.")
+    public ResponseEntity<Map<String, Object>> handleVNPayReturn(@RequestParam Map<String, String> params) {
+        Map<String, Object> response = new java.util.HashMap<>();
+        String responseCode = params.get("vnp_ResponseCode");
+        boolean isSuccess = "00".equals(responseCode);
+
+        if (isSuccess) {
+            try {
+                paymentService.processVNPayIpn(params);
+            } catch (Exception e) {
+                System.err.println("handleVNPayReturn IPN processing note: " + e.getMessage());
+            }
+        } else if ("24".equals(responseCode)) {
+            // Khách hàng chủ động hủy thanh toán trên cổng VNPay
+            try {
+                String txnRef = params.get("vnp_TxnRef");
+                if (txnRef != null) {
+                    Long orderId = Long.parseLong(txnRef.split("_")[0]);
+                    orderService.updateOrderStatus(orderId, OrderStatus.CANCELED);
+                    System.out.println("VNPay Return: Đã hủy đơn hàng #" + orderId + " và hoàn trả tồn kho vì khách bấm Hủy");
+                }
+            } catch (Exception e) {
+                System.err.println("handleVNPayReturn cancel order error: " + e.getMessage());
+            }
+        }
+
+        response.put("success", isSuccess);
+        response.put("responseCode", responseCode);
+        response.put("message", isSuccess ? "Giao dịch thành công" : "Giao dịch không thành công");
+        response.put("orderId", params.get("vnp_TxnRef"));
+        response.put("amount", params.get("vnp_Amount") != null ? Long.parseLong(params.get("vnp_Amount")) / 100 : 0);
+        response.put("transactionNo", params.get("vnp_TransactionNo"));
+        response.put("bankCode", params.get("vnp_BankCode"));
+        response.put("payDate", params.get("vnp_PayDate"));
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/vnpay/ipn")

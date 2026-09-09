@@ -98,8 +98,9 @@ public class ProductServiceImpl implements ProductService {
         }
 
         // 2. Tìm kiếm theo Ngữ nghĩa AI (Vector Search)
+        // Nâng ngưỡng tương đồng (minScore) lên 0.82 để loại bỏ hoàn toàn các từ ngữ không liên quan / rác
         Embedding queryEmbedding = embeddingModel.embed(query).content();
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, 10, 0.6);
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(queryEmbedding, 10, 0.82);
 
         List<Long> aiIds = matches.stream()
                 .filter(match -> "product".equals(match.embedded().metadata().getString("type")))
@@ -549,6 +550,11 @@ public class ProductServiceImpl implements ProductService {
         
         // Cứu cánh cuối cùng nếu cả "Chạy bộ" cũng không có sản phẩm
         return getTopSellingProductsPublic(limit);
+    }
+
+    @Override
+    public ProductDTO mapProductToDTO(Product product) {
+        return mapToDTO(product);
     }
 
     /**

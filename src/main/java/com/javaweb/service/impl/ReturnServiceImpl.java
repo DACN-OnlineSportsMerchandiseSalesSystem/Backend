@@ -7,25 +7,33 @@ import com.javaweb.dto.ReturnRequestDTO;
 import com.javaweb.entity.*;
 import com.javaweb.exception.ResouceNotFoundException;
 import com.javaweb.repository.OrderRepository;
+import com.javaweb.repository.ProductVariantRepository;
 import com.javaweb.repository.ReturnRequestRepository;
 import com.javaweb.repository.UserRepository;
 import com.javaweb.service.ReturnService;
+import com.javaweb.service.StatisticService;
 import com.javaweb.enums.OrderStatus;
 import com.javaweb.enums.ReturnStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ReturnServiceImpl implements ReturnService {
 
     private final ReturnRequestRepository returnRequestRepository;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
+    private final ProductVariantRepository productVariantRepository;
+    private final StatisticService statisticService;
 
     @Override
     public ReturnRequestDTO createReturnRequest(Long userId, CreateReturnRequestDTO requestDTO) {
@@ -121,6 +129,29 @@ public class ReturnServiceImpl implements ReturnService {
             Orders order = request.getOrder();
             order.setStatus(OrderStatus.REFUNDED);
             orderRepository.save(order);
+
+            // 1. Hoàn trả tồn kho cho sản phẩm trả
+            if (request.getReturnItems() != null) {
+                for (ReturnItem item : request.getReturnItems()) {
+                    if (item.getOrderItem() != null && item.getOrderItem().getProductVariants() != null) {
+                        ProductVariant variant = item.getOrderItem().getProductVariants();
+                        int currentStock = variant.getStockQuantity() != null ? variant.getStockQuantity() : 0;
+                        int returnQty = item.getQuantity() != null ? item.getQuantity() : 1;
+                        variant.setStockQuantity(currentStock + returnQty);
+                        productVariantRepository.save(variant);
+                    }
+                }
+            }
+
+            // 2. Tự động đồng bộ lại doanh thu trong bảng thống kê cho ngày đặt đơn
+            if (order.getCreateAt() != null) {
+                try {
+                    LocalDate orderDate = order.getCreateAt().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    statisticService.syncDailyStatistic(orderDate);
+                } catch (Exception e) {
+                    System.err.println("Không thể cập nhật thống kê khi duyệt hoàn trả: " + e.getMessage());
+                }
+            }
         } else if ("REJECT".equalsIgnoreCase(action)) {
             request.setStatus(ReturnStatus.REJECTED);
         } else {
