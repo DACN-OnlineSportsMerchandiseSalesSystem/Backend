@@ -35,6 +35,22 @@ public class Product { // Tên Class KHÔNG CÓ 's'
     
     @Column(name = "slug")
     private String slug; // Đã sửa thành String
+
+    // --- HẠNG MỤC 2: METADATA CHUẨN HÓA CHO AI RECOMMENDATION & SEMANTIC SEARCH ---
+    @Column(name = "target_sport")
+    private String targetSport; // Môn thể thao đích: Gym, Running, Badminton, Pickleball, Football...
+
+    @Column(name = "fitness_level")
+    private String fitnessLevel; // Trình độ: All, Beginner, Intermediate, Advanced
+
+    @Column(name = "gender_target")
+    private String genderTarget; // Dành cho: Unisex, Men, Women
+
+    @Column(name = "suitable_for", columnDefinition = "TEXT")
+    private String suitableFor; // Mục đích/Tác dụng: Tăng cơ, bảo vệ khớp gối, chạy đường dài...
+
+    @Column(name = "benefits", columnDefinition = "TEXT")
+    private String benefits; // Lợi ích cốt lõi: Đệm phản hồi năng lượng, thoáng khí, giảm chấn...
     
     // --- CÁC MỐI QUAN HỆ MANY-TO-ONE (Trỏ ra ngoài) ---
     

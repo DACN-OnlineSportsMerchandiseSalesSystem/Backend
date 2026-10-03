@@ -59,6 +59,7 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@Transactional
 	public OrderDTO updateOrderStatus(Long id, OrderStatus status) {
 		Orders order = orderRepository.findById(id)
 				.orElseThrow(() -> new ResouceNotFoundException("Order not found with id: " + id));
@@ -108,6 +109,7 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
+	@Transactional
 	public OrderDTO deleteOrder(Long id) {
 		// Gọi hàm updateOrderStatus để khôi phục tồn kho và voucher tự động
 		return updateOrderStatus(id, OrderStatus.CANCELED);

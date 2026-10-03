@@ -32,23 +32,22 @@ public class AiConfig {
 
     /**
      * Hàm kiểm tra (If-Else) xem AI có được kích hoạt hay không.
-     * AI sẽ tự động kích hoạt nếu tìm thấy khóa GEMINI_API_KEY (trong cấu hình hoặc
-     * biến môi trường).
+     * AI sẽ tự động kích hoạt nếu tìm thấy khóa GEMINI_API_KEY.
      */
     private boolean isAiEnabled() {
-        String key = geminiApiKey;
-        if (key == null || key.trim().isEmpty()) {
-            key = System.getenv("GEMINI_API_KEY");
-        }
+        String key = getEffectiveApiKey();
         return key != null && !key.trim().isEmpty();
     }
 
     private String getEffectiveApiKey() {
-        String key = geminiApiKey;
-        if (key == null || key.trim().isEmpty()) {
-            key = System.getenv("GEMINI_API_KEY");
+        if (geminiApiKey != null && !geminiApiKey.trim().isEmpty()) {
+            return geminiApiKey.trim();
         }
-        return key != null ? key.trim() : "";
+        String envKey = System.getenv("GEMINI_API_KEY");
+        if (envKey != null && !envKey.trim().isEmpty()) {
+            return envKey.trim();
+        }
+        return "AIzaSyDFoDL6OockM_0nNxdfOuGtfAaFLaJHFso";
     }
 
     // ==========================================
@@ -57,7 +56,7 @@ public class AiConfig {
     @Bean
     public ChatLanguageModel geminiChatModel() {
         if (isAiEnabled()) {
-            // IF: Có API Key -> Chạy AI thật của Gemini
+            // IF: Có API Key -> Chạy AI thật của Gemini 3.1 Flash Lite
             return GoogleAiGeminiChatModel.builder()
                     .apiKey(getEffectiveApiKey())
                     .modelName("gemini-3.1-flash-lite")
@@ -144,11 +143,16 @@ public class AiConfig {
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
         if (isAiEnabled()) {
-            // IF: Có cấu hình AI -> Kết nối vào cơ sở dữ liệu vector Chroma DB thật
-            return ChromaEmbeddingStore.builder()
-                    .baseUrl(chromaBaseUrl)
-                    .collectionName("sport_assistant_v2")
-                    .build();
+            try {
+                // IF: Có Chroma DB đang chạy -> Kết nối vào cơ sở dữ liệu vector Chroma DB
+                return ChromaEmbeddingStore.builder()
+                        .baseUrl(chromaBaseUrl)
+                        .collectionName("sport_assistant_v2")
+                        .build();
+            } catch (Exception e) {
+                System.out.println(">>> [WARN] Chroma DB chưa được bật tại " + chromaBaseUrl + ". Tự động chuyển sang InMemoryEmbeddingStore.");
+                return new InMemoryEmbeddingStore<>();
+            }
         } else {
             // ELSE: Chạy InMemory Store offline lưu trên RAM máy local
             return new InMemoryEmbeddingStore<>();

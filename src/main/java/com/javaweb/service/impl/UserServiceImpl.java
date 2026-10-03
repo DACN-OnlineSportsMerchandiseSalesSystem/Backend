@@ -195,22 +195,7 @@ public class UserServiceImpl implements UserService {
     public UserDTO getMyProfile(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
-                
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhone(user.getPhone());
-        dto.setStatus(user.getStatus());
-        dto.setGender(user.getGender());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setLevel(user.getLevel());
-        dto.setRank(user.getRank());
-        if (user.getRole() != null) {
-            dto.setRoleName(user.getRole().getName());
-        }
-        return dto;
+        return convertToDTO(user);
     }
 
     @Override
@@ -226,22 +211,7 @@ public class UserServiceImpl implements UserService {
         if (request.getBirthDate() != null) user.setBirthDate(request.getBirthDate());
  
         user = userRepository.save(user);
- 
-        UserDTO dto = new UserDTO();
-        dto.setId(user.getId());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhone(user.getPhone());
-        dto.setGender(user.getGender());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setStatus(user.getStatus());
-        dto.setLevel(user.getLevel());
-        dto.setRank(user.getRank());
-        if (user.getRole() != null) {
-            dto.setRoleName(user.getRole().getName());
-        }
-        return dto;
+        return convertToDTO(user);
     }
 
     @Override
@@ -313,5 +283,52 @@ public class UserServiceImpl implements UserService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public void updateSportProfile(String email, com.javaweb.dto.UserProfileRequestDTO request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
+
+        if (request.getSports() != null) user.setSports(request.getSports());
+        if (request.getSportLevel() != null) user.setSportLevel(request.getSportLevel());
+        if (request.getWristStrength() != null) user.setWristStrength(request.getWristStrength());
+        if (request.getPreferredBudget() != null) user.setPreferredBudget(request.getPreferredBudget());
+        if (request.getInjuries() != null) user.setInjuries(request.getInjuries());
+
+        userRepository.save(user);
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public UserDTO getSportProfile(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResouceNotFoundException("User not found: " + email));
+        return convertToDTO(user);
+    }
+
+    private UserDTO convertToDTO(User user) {
+        if (user == null) return null;
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setEmail(user.getEmail());
+        dto.setPhone(user.getPhone());
+        dto.setStatus(user.getStatus());
+        dto.setGender(user.getGender());
+        dto.setBirthDate(user.getBirthDate());
+        dto.setLevel(user.getLevel());
+        dto.setRank(user.getRank());
+        if (user.getRole() != null) {
+            dto.setRoleName(user.getRole().getName());
+        }
+        dto.setSports(user.getSports());
+        dto.setSportLevel(user.getSportLevel());
+        dto.setWristStrength(user.getWristStrength());
+        dto.setPreferredBudget(user.getPreferredBudget());
+        dto.setInjuries(user.getInjuries());
+        return dto;
     }
 }

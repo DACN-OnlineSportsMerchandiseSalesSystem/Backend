@@ -58,4 +58,29 @@ public class FileUploadController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+
+    @PostMapping(value = "/upload-forum-image", consumes = "multipart/form-data")
+    @Operation(summary = "Upload forum user media to Cloudinary", description = "Uploads a forum thread or community post picture to Cloudinary storage and returns the secure URL.")
+    public ResponseEntity<Map<String, String>> uploadForumImage(
+            @Parameter(description = "Multipart file object of the forum image", required = true)
+            @RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "Vui lòng chọn file ảnh để tải lên!");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            String imageUrl = cloudinaryService.uploadFile(file);
+            Map<String, String> response = new HashMap<>();
+            response.put("url", imageUrl);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Lỗi tải ảnh lên Cloudinary: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }

@@ -43,4 +43,6 @@ public class Category {
     @ManyToMany(mappedBy = "interestedCategories")
     private Set<User> interestedUsers = new HashSet<>();
 
+    @Column(name = "is_consumable", columnDefinition = "boolean default false")
+    private Boolean isConsumable = false;
 }

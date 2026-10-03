@@ -23,4 +23,9 @@ public class UserDTO {
     private Long level;
     private RankType rank;
     private String roleName; // Chú ý: Chỉ trả về TÊN quyền (VD: "ADMIN"), chứ không trả nguyên object Role
+    private String sports;
+    private String sportLevel;
+    private String wristStrength;
+    private String preferredBudget;
+    private String injuries;
 }

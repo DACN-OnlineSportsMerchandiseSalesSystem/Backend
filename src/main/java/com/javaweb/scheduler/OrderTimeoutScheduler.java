@@ -25,6 +25,7 @@ public class OrderTimeoutScheduler {
      * Chạy định kỳ mỗi 1 phút (60,000 ms) để quét và hủy các đơn hàng PENDING đã quá 15 phút.
      */
     @Scheduled(fixedDelay = 60000)
+    @org.springframework.transaction.annotation.Transactional
     public void cancelExpiredPendingOrders() {
         log.info(">>> [Order Scheduler] Đang quét các đơn hàng quá hạn thanh toán...");
         

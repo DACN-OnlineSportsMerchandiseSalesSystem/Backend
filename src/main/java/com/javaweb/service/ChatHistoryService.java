@@ -40,21 +40,26 @@ public class ChatHistoryService {
         if (sessionId == null || sessionId.isBlank()) return "";
 
         String key = KEY_PREFIX + sessionId;
-        List<String> raw = redisTemplate.opsForList().range(key, 0, -1);
-        if (raw == null || raw.isEmpty()) return "";
+        try {
+            List<String> raw = redisTemplate.opsForList().range(key, 0, -1);
+            if (raw == null || raw.isEmpty()) return "";
 
-        StringBuilder sb = new StringBuilder("[LỊCH SỬ HỘI THOẠI GẦN ĐÂY]\n");
-        for (String json : raw) {
-            try {
-                Turn turn = objectMapper.readValue(json, Turn.class);
-                String label = "user".equals(turn.role()) ? "Khách hàng" : "SportBot";
-                sb.append(label).append(": ").append(turn.content()).append("\n");
-            } catch (JsonProcessingException e) {
-                log.warn("Không đọc được lịch sử chat: {}", e.getMessage());
+            StringBuilder sb = new StringBuilder("[LỊCH SỬ HỘI THOẠI GẦN ĐÂY]\n");
+            for (String json : raw) {
+                try {
+                    Turn turn = objectMapper.readValue(json, Turn.class);
+                    String label = "user".equals(turn.role()) ? "Khách hàng" : "SportBot";
+                    sb.append(label).append(": ").append(turn.content()).append("\n");
+                } catch (JsonProcessingException e) {
+                    log.warn("Không đọc được lịch sử chat: {}", e.getMessage());
+                }
             }
+            sb.append("\n");
+            return sb.toString();
+        } catch (Exception e) {
+            log.warn("Không thể truy cập Redis lịch sử chat ({}). Bỏ qua context lịch sử.", e.getMessage());
+            return "";
         }
-        sb.append("\n");
-        return sb.toString();
     }
 
     /** Lưu một lượt hội thoại (user hoặc bot) vào Redis */
@@ -75,14 +80,18 @@ public class ChatHistoryService {
 
             // Gia hạn TTL sau mỗi tin nhắn
             redisTemplate.expire(key, TTL_MINUTES, TimeUnit.MINUTES);
-        } catch (JsonProcessingException e) {
-            log.error("Lỗi khi lưu lịch sử chat: {}", e.getMessage());
+        } catch (Exception e) {
+            log.warn("Không thể lưu lịch sử chat vào Redis: {}", e.getMessage());
         }
     }
 
     /** Xóa toàn bộ lịch sử của session */
     public void clearHistory(String sessionId) {
         if (sessionId == null || sessionId.isBlank()) return;
-        redisTemplate.delete(KEY_PREFIX + sessionId);
+        try {
+            redisTemplate.delete(KEY_PREFIX + sessionId);
+        } catch (Exception e) {
+            log.warn("Không thể xóa lịch sử session trên Redis: {}", e.getMessage());
+        }
     }
 }

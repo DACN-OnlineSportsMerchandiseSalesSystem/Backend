@@ -23,6 +23,9 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByCategories_IdIn(List<Long> categoryIds, org.springframework.data.domain.Pageable pageable);
     List<Product> findByCategories_IdIn(List<Long> categoryIds);
 
+    @Query("SELECT p FROM Product p WHERE LOWER(p.targetSport) LIKE LOWER(CONCAT('%', :sport, '%')) OR LOWER(p.searchTag) LIKE LOWER(CONCAT('%', :sport, '%'))")
+    List<Product> findBySportOrTag(@Param("sport") String sport);
+
     List<Product> findByBrandId(Long brandId);
 
     List<Product> findByCategories_IdAndBrandId(Long categoryId, Long brandId);

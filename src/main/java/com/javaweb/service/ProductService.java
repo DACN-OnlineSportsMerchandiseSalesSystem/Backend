@@ -25,5 +25,5 @@ public interface ProductService {
 
     List<ProductDTO> getTopSellingProductsPublic(int limit);
 
-    List<ProductDTO> getPersonalizedRecommendations(String email, int limit);
+    List<ProductDTO> getPersonalizedRecommendations(String email, String sport, String level, String priceRange, int limit);
 }

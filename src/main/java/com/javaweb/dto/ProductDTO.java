@@ -19,6 +19,13 @@ public class ProductDTO {
     private Double rating;
     private Integer reviewCount;
 
+    // Hạng mục 2: Metadata chuẩn hóa cho AI
+    private String targetSport;
+    private String fitnessLevel;
+    private String genderTarget;
+    private String suitableFor;
+    private String benefits;
+
     private List<Long> categoryIds;
     private List<String> categoryNames;
     private String brandName;

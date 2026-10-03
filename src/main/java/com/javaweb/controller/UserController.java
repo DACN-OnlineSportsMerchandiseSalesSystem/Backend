@@ -89,6 +89,21 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/profile/sport")
+    @Operation(summary = "Update user sport profile", description = "Modify profile settings (sports, level, wrist strength, preferred budget, injuries) for personalized AI recommendations.")
+    public ResponseEntity<Void> updateSportProfile(@RequestBody UserProfileRequestDTO requestDTO) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.updateSportProfile(email, requestDTO);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/profile/sport")
+    @Operation(summary = "Get user sport profile", description = "Retrieve sport profile settings (sports, level, wrist strength, preferred budget, injuries) of the logged-in user.")
+    public ResponseEntity<UserDTO> getSportProfile() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return ResponseEntity.ok(userService.getSportProfile(email));
+    }
+
     // ==========================================
     // NHÓM API DÀNH CHO QUẢN TRỊ VIÊN (ADMIN)
     // ==========================================

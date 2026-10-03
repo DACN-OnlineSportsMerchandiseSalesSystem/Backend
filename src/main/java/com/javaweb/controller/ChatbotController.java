@@ -75,11 +75,20 @@ public class ChatbotController {
         System.out.printf(">>> [STREAM] msg='%s' | productId=%s | session=%s | user=%s%n",
                 message, productId, sessionId, userEmail);
 
-        if (productId != null) {
-            chatbotService.streamHybrid(message, productId, sessionId, userEmail, emitter);
-        } else {
-            chatbotService.streamPureRag(message, sessionId, userEmail, emitter);
-        }
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                if (productId != null) {
+                    chatbotService.streamHybrid(message, productId, sessionId, userEmail, emitter);
+                } else {
+                    chatbotService.streamPureRag(message, sessionId, userEmail, emitter);
+                }
+            } catch (Exception e) {
+                System.err.println(">>> [STREAM ERROR] " + e.getMessage());
+                try {
+                    emitter.completeWithError(e);
+                } catch (Exception ignored) {}
+            }
+        });
 
         return emitter;
     }

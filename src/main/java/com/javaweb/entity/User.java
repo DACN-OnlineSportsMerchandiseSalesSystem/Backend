@@ -97,4 +97,19 @@ public class User {
         inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> interestedCategories = new HashSet<>();
+
+    @Column(name = "sports")
+    private String sports;
+
+    @Column(name = "sport_level")
+    private String sportLevel;
+
+    @Column(name = "wrist_strength")
+    private String wristStrength;
+
+    @Column(name = "preferred_budget")
+    private String preferredBudget;
+
+    @Column(name = "injuries")
+    private String injuries;
 }

@@ -70,17 +70,19 @@ public class ProductController {
     }
 
     @GetMapping("/recommendations")
-    @Operation(summary = "Get personalized product recommendations", description = "Retrieve a curated list of products based on the logged-in user's rank, rank-ups, and followed category interests.")
+    @Operation(summary = "Get personalized product recommendations", description = "Retrieve a curated list of products based on the logged-in user's rank, followed category interests, and optional widget selectors.")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved recommendations"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized - User session missing")
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved recommendations")
     })
     public ResponseEntity<List<ProductDTO>> getPersonalizedRecommendations(
             Principal principal,
+            @RequestParam(required = false) String sport,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) String priceRange,
             @Parameter(description = "Maximum number of recommendations to return", example = "10")
             @RequestParam(required = false, defaultValue = "10") int limit) {
         String email = (principal != null) ? principal.getName() : null;
-        return ResponseEntity.ok(productService.getPersonalizedRecommendations(email, limit));
+        return ResponseEntity.ok(productService.getPersonalizedRecommendations(email, sport, level, priceRange, limit));
     }
 
     @GetMapping("/{id}")

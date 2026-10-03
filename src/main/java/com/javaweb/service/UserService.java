@@ -28,4 +28,8 @@ public interface UserService {
     void updateInterests(String email, List<Long> categoryIds);
 
     List<com.javaweb.dto.CategoryDTO> getMyInterests(String email);
+
+    void updateSportProfile(String email, com.javaweb.dto.UserProfileRequestDTO request);
+
+    UserDTO getSportProfile(String email);
 }

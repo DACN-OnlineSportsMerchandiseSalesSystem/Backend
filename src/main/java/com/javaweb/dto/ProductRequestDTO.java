@@ -19,6 +19,13 @@ public class ProductRequestDTO {
     private Integer discount;
     private BigDecimal originalPrice;
 
+    // Hạng mục 2: Metadata chuẩn hóa cho AI Recommendation
+    private String targetSport;
+    private String fitnessLevel;
+    private String genderTarget;
+    private String suitableFor;
+    private String benefits;
+
     // Nhận ID từ Frontend thay vì nhận chuỗi tên
     private Long productVariantId;
     private List<Long> categoryIds;
@@ -33,4 +40,3 @@ public class ProductRequestDTO {
     // Tồn kho riêng theo từng biến thể (màu + cỡ) — ưu tiên hơn stockQuantity
     private List<VariantStockDTO> variantStocks;
 }
-
